@@ -24,7 +24,7 @@ const skills: Skill[] = [
     name: "Backend Development",
     icon: <Server className="w-8 h-8" />,
     description: "Creating robust server-side applications and APIs",
-    technologies: ["Laravel", "Node.js", "PHP", "Express.js", "REST APIs"],
+    technologies: ["Laravel", "Node.js", "PHP", "Express.js",],
     color: "from-purple-500 to-indigo-500"
   },
   {
