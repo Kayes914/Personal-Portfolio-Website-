@@ -4,17 +4,110 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+
+type Status = 'available' | 'busy' | 'offline';
+
+interface HeroSettings {
+  status: Status;
+  available_text: string;
+  busy_text: string;
+  offline_text: string;
+}
+
+const defaultTexts = {
+  available: "I'm available for new projects",
+  busy: "I'm really busy right now",
+  offline: "I'm currently offline"
+};
 
 const Hero = () => {
   const [isMounted, setIsMounted] = useState(false);
+  const [settings, setSettings] = useState<HeroSettings>({
+    status: 'available',
+    available_text: defaultTexts.available,
+    busy_text: defaultTexts.busy,
+    offline_text: defaultTexts.offline
+  });
+
+  const fetchSettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('hero_settings')
+        .select('*')
+        .limit(1)
+        .order('created_at', { ascending: true })
+        .single();
+
+      if (error) throw error;
+      if (data) {
+        setSettings({
+          status: data.status || 'available',
+          available_text: data.available_text || defaultTexts.available,
+          busy_text: data.busy_text || defaultTexts.busy,
+          offline_text: data.offline_text || defaultTexts.offline
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching hero settings:', error);
+    }
+  };
 
   useEffect(() => {
     setIsMounted(true);
+    fetchSettings();
+
+    // Subscribe to changes
+    const channel = supabase
+      .channel('hero_settings_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'hero_settings'
+        },
+        (payload) => {
+          console.log('Change received!', payload);
+          fetchSettings();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   if (!isMounted) {
     return null;
   }
+
+  const getStatusIndicator = () => {
+    const statusConfig = {
+      available: {
+        bgColor: 'bg-green-500',
+        text: settings.available_text
+      },
+      busy: {
+        bgColor: 'bg-orange-500',
+        text: settings.busy_text
+      },
+      offline: {
+        bgColor: 'bg-red-500',
+        text: settings.offline_text
+      }
+    };
+
+    const config = statusConfig[settings.status];
+    
+    return (
+      <div className="inline-flex items-center rounded-full px-4 py-1 mb-6 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50">
+        <span className={`inline-block w-2 h-2 rounded-full ${config.bgColor} mr-2 animate-pulse`}></span>
+        <span className="text-sm font-medium text-slate-200">{config.text}</span>
+      </div>
+    );
+  };
 
   return (
     <section id="home" className="relative w-full min-h-screen flex flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-slate-950 to-slate-900 py-20 px-4 sm:px-6 lg:px-8">
@@ -35,10 +128,7 @@ const Hero = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7 }}
           >
-            <div className="inline-flex items-center rounded-full px-4 py-1 mb-6 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50">
-              <span className="inline-block w-2 h-2 rounded-full bg-green-500 mr-2 animate-pulse"></span>
-              <span className="text-sm font-medium text-slate-200">Available for new projects</span>
-            </div>
+            {getStatusIndicator()}
             
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-300">
               <span className="block">Hi, I'm Kayes</span>
@@ -99,19 +189,10 @@ const Hero = () => {
         className="absolute bottom-8 left-1/2 -translate-x-1/2"
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ 
-          duration: 0.5, 
-          delay: 1,
-          repeat: Infinity,
-          repeatType: "reverse",
-          repeatDelay: 0.5
-        }}
+        transition={{ duration: 0.7, delay: 0.4 }}
       >
-        <div className="flex flex-col items-center">
-          <span className="text-sm text-slate-400 mb-2">Scroll Down</span>
-          <svg className="w-6 h-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-          </svg>
+        <div className="w-6 h-10 border-2 border-slate-400 rounded-full flex justify-center p-1">
+          <div className="w-1 h-2 bg-slate-400 rounded-full animate-bounce"></div>
         </div>
       </motion.div>
     </section>
@@ -122,14 +203,17 @@ const Hero = () => {
 const AnimatedCode = () => {
   const [typedCode, setTypedCode] = useState("");
   
-  // Shorter, more focused code example with color-friendly formatting
-  const codeExample = `// Kayes - Full Stack Developer
+  useEffect(() => {
+    let currentText = "";
+    let currentIndex = 0;
+    
+    const codeExample = `// Kayes - Full Stack Developer
 
 const techStack = {
-  frontend: ["React", "Next.js", "Tailwind CSS",],
+  frontend: ["React", "Next.js", "Tailwind CSS"],
   backend: ["Laravel", "Node.js", "Express", "PHP"],
   database: ["MySQL", "MongoDB", "PostgreSQL"],
-  tools: ["Git", "VS Code",]
+  tools: ["Git", "VS Code"]
 };
 
 // Professional experience
@@ -146,12 +230,7 @@ const expertise = {
   focus: "Performance Optimization",
   approach: "Mobile-First Responsive",
   passion: "Creating Intuitive Interfaces"
-};
-`;
-
-  useEffect(() => {
-    let currentText = "";
-    let currentIndex = 0;
+};`;
     
     const typeNextCharacter = () => {
       if (currentIndex < codeExample.length) {
@@ -183,7 +262,7 @@ const expertise = {
     return (
       <div>
         {lines.map((line, index) => {
-          // Determine syntax highlighting with more color variety
+          // Determine syntax highlighting
           let colorClass = 'text-slate-200';
           
           // Comments
@@ -215,13 +294,10 @@ const expertise = {
             colorClass = 'text-pink-400';
           }
           
-          // For the last line, add a blinking cursor at the end
-          const isLastLine = index === lines.length - 1;
-          
           return (
             <div key={index} className={`${colorClass} font-mono leading-tight mb-0.5 text-sm whitespace-pre`}>
               {line}
-              {isLastLine && (
+              {index === lines.length - 1 && (
                 <span className="inline-block w-2 h-4 bg-cyan-400 ml-0.5 animate-blink-fast align-text-top" />
               )}
             </div>

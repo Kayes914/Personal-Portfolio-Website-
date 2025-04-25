@@ -8,8 +8,10 @@ export default function PageViewTracker() {
   const pathname = usePathname();
 
   useEffect(() => {
-    // Track page view when pathname changes
-    trackPageView(pathname);
+    // Don't track views for dashboard routes
+    if (!pathname.startsWith('/dashboard')) {
+      trackPageView(pathname);
+    }
   }, [pathname]);
 
   return null;

@@ -41,30 +41,53 @@ export const trackPageView = async (pagePath: string) => {
 // Get dashboard stats
 export const getDashboardStats = async () => {
   try {
-    const [
-      { data: projectStats },
-      { data: dailyStats },
-      { data: monthlyStats }
-    ] = await Promise.all([
-      supabase.rpc<ProjectStats>('get_total_projects').single(),
-      supabase.rpc<DailyStats>('get_daily_views').single(),
-      supabase.rpc<MonthlyStats>('get_monthly_views').single()
-    ]);
+    console.log('Fetching dashboard stats...');
+    
+    // Directly count projects instead of using stored procedure
+    console.log('Fetching projects...');
+    const { data: projects, error: projectsError } = await supabase
+      .from('projects')
+      .select('*');
 
-    return {
+    console.log('Projects data:', projects);
+    console.log('Projects error:', projectsError);
+
+    if (projectsError) {
+      console.error('Error fetching projects:', projectsError);
+      throw projectsError;
+    }
+
+    const totalCount = projects?.length || 0;
+    const monthlyChange = projects?.filter(project => 
+      new Date(project.created_at) >= new Date(new Date().setDate(1))
+    ).length || 0;
+
+    console.log('Project counts:', { totalCount, monthlyChange });
+
+    // Get daily and monthly views using RPC
+    const { data: dailyStats } = await supabase.rpc('get_daily_views');
+    const { data: monthlyStats } = await supabase.rpc('get_monthly_views');
+
+    console.log('Daily stats:', dailyStats);
+    console.log('Monthly stats:', monthlyStats);
+
+    const result = {
       projects: {
-        total: projectStats?.total_count || 0,
-        monthlyChange: projectStats?.monthly_change || 0
+        total: totalCount,
+        monthlyChange: monthlyChange
       },
       dailyViews: {
-        today: dailyStats?.today_count || 0,
-        yesterday: dailyStats?.yesterday_count || 0
+        today: dailyStats?.[0]?.today_count || 0,
+        yesterday: dailyStats?.[0]?.yesterday_count || 0
       },
       monthlyViews: {
-        current: monthlyStats?.current_month_count || 0,
-        last: monthlyStats?.last_month_count || 0
+        current: monthlyStats?.[0]?.current_month_count || 0,
+        last: monthlyStats?.[0]?.last_month_count || 0
       }
     };
+
+    console.log('Final dashboard stats:', result);
+    return result;
   } catch (error) {
     console.error('Error fetching dashboard stats:', error);
     return null;

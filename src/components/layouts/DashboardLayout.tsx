@@ -9,7 +9,10 @@ import {
   LogOut, 
   Menu, 
   X,
-  ChevronRight
+  ChevronRight,
+  ImageIcon,
+  User,
+  Mail
 } from 'lucide-react';
 
 interface DashboardLayoutProps {
@@ -23,6 +26,9 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Manage Works', href: '/dashboard/works', icon: FolderKanban },
+    { name: 'Hero Section', href: '/dashboard/hero', icon: ImageIcon },
+    { name: 'About Section', href: '/dashboard/about', icon: User },
+    { name: 'Contact Section', href: '/dashboard/contact', icon: Mail },
   ];
 
   return (

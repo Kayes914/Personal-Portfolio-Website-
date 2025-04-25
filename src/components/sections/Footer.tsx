@@ -1,34 +1,103 @@
 "use client";
 
-import React from 'react';
-import { Github, Linkedin, Mail, Twitter } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { Github, Linkedin, Mail, Twitter, Facebook } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
-const socialLinks = [
-  {
-    name: 'GitHub',
-    href: 'https://github.com/yourusername',
-    icon: <Github className="w-5 h-5" />
-  },
-  {
-    name: 'LinkedIn',
-    href: 'https://linkedin.com/in/yourusername',
-    icon: <Linkedin className="w-5 h-5" />
-  },
-  {
-    name: 'Twitter',
-    href: 'https://twitter.com/yourusername',
-    icon: <Twitter className="w-5 h-5" />
-  },
-  {
-    name: 'Email',
-    href: 'mailto:your.email@example.com',
-    icon: <Mail className="w-5 h-5" />
+interface ContactSettings {
+  email: string;
+  social_links: {
+    github: string;
+    linkedin: string;
+    twitter: string;
+    facebook: string;
+  };
+}
+
+const defaultSettings: ContactSettings = {
+  email: 'your.email@example.com',
+  social_links: {
+    github: 'https://github.com/yourusername',
+    linkedin: 'https://linkedin.com/in/yourusername',
+    twitter: 'https://twitter.com/yourusername',
+    facebook: 'https://facebook.com/yourusername'
   }
-];
+};
 
-const Footer = () => {
-  const currentYear = new Date().getFullYear();
+export default function Footer() {
+  const [settings, setSettings] = useState<ContactSettings>(defaultSettings);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('contact_settings')
+          .select('email, social_links')
+          .limit(1)
+          .order('created_at', { ascending: true })
+          .single();
+
+        if (error) throw error;
+
+        if (data) {
+          setSettings(data);
+        }
+      } catch (error) {
+        console.error('Error fetching contact settings:', error);
+      }
+    };
+
+    fetchSettings();
+
+    // Subscribe to changes
+    const channel = supabase
+      .channel('contact_settings_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'contact_settings'
+        },
+        () => {
+          fetchSettings();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const socialLinks = [
+    {
+      name: 'GitHub',
+      href: settings.social_links.github,
+      icon: <Github className="w-5 h-5" />
+    },
+    {
+      name: 'LinkedIn',
+      href: settings.social_links.linkedin,
+      icon: <Linkedin className="w-5 h-5" />
+    },
+    {
+      name: 'Twitter',
+      href: settings.social_links.twitter,
+      icon: <Twitter className="w-5 h-5" />
+    },
+    {
+      name: 'Facebook',
+      href: settings.social_links.facebook,
+      icon: <Facebook className="w-5 h-5" />
+    },
+    {
+      name: 'Email',
+      href: `mailto:${settings.email}`,
+      icon: <Mail className="w-5 h-5" />
+    }
+  ];
 
   return (
     <footer className="relative py-12 overflow-hidden border-t border-slate-800">
@@ -76,7 +145,7 @@ const Footer = () => {
                 </Link>
               </div>
               <p className="text-sm text-slate-500">
-                © {currentYear} Your Name. All rights reserved.
+                © {new Date().getFullYear()} Kayes. All rights reserved.
               </p>
             </div>
 
@@ -100,6 +169,4 @@ const Footer = () => {
       </div>
     </footer>
   );
-};
-
-export default Footer; 
+} 
