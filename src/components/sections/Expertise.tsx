@@ -57,6 +57,7 @@ const skills: Skill[] = [
   }
 ];
 
+
 const Expertise = () => {
   return (
     <section id="expertise" className="relative py-24 overflow-hidden">
