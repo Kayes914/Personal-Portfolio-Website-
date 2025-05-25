@@ -8,7 +8,6 @@ import ContactModal from './ContactModal';
 const navItems = [
   { name: 'Home', href: '#home' },
   { name: 'Works', href: '#works' },
-  { name: 'Expertise', href: '#expertise' },
   { name: 'About', href: '#about' },
 ];
 
@@ -71,15 +70,15 @@ const Navbar = () => {
         <nav 
           className={`${
             scrolled ? 'bg-slate-900/80 shadow-lg shadow-slate-900/20' : 'bg-transparent'
-          } rounded-full border border-slate-800/50 backdrop-blur-md transition-all duration-300 px-6 py-3`}
+          } rounded-full border border-slate-800/50 backdrop-blur-md transition-all duration-300 px-4 sm:px-6 py-3`}
         >
-          <ul className="flex items-center gap-8">
+          <ul className="flex items-center gap-2 sm:gap-8">
             {navItems.map((item) => (
               <li key={item.name}>
                 <Link
                   href={item.href}
                   onClick={(e) => handleNavClick(e, item.href)}
-                  className={`relative px-2 py-1 text-sm font-medium transition-colors ${
+                  className={`relative px-1 sm:px-2 py-1 text-xs sm:text-sm font-medium transition-colors ${
                     activeSection === item.href.substring(1)
                       ? 'text-white'
                       : 'text-slate-400 hover:text-white'
@@ -100,7 +99,7 @@ const Navbar = () => {
             <li>
               <button
                 onClick={() => setIsContactModalOpen(true)}
-                className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-blue-600 rounded-full hover:from-purple-700 hover:to-blue-700 transition-all duration-300"
+                className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-blue-600 rounded-full hover:from-purple-700 hover:to-blue-700 transition-all duration-300"
               >
                 Let's Talk
               </button>

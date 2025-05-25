@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
 
 interface AboutSettings {
   id: string;
@@ -58,6 +59,7 @@ export default function AboutSettingsPage() {
   };
 
   const handleSave = async () => {
+    setSaving(true);
     try {
       console.log('Saving settings:', settings);
       const { error } = await supabase
@@ -72,6 +74,8 @@ export default function AboutSettingsPage() {
     } catch (error) {
       console.error('Error saving about settings:', error);
       toast.error('Failed to save about settings');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -159,7 +163,14 @@ export default function AboutSettingsPage() {
                 disabled={saving}
                 className="min-w-[120px]"
               >
-                {saving ? 'Saving...' : 'Save Changes'}
+                {saving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save Changes'
+                )}
               </Button>
             </div>
           </div>

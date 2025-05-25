@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Lock } from 'lucide-react';
+import { authenticateUser, isAuthenticated } from '@/utils/auth';
+import Cookies from 'js-cookie';
 
 export default function DashboardLogin() {
   const [password, setPassword] = useState('');
@@ -14,8 +16,7 @@ export default function DashboardLogin() {
 
   useEffect(() => {
     // Check if already authenticated
-    const isAuthenticated = localStorage.getItem('dashboard_auth');
-    if (isAuthenticated === 'true') {
+    if (isAuthenticated()) {
       router.push('/dashboard');
     }
   }, [router]);
@@ -24,9 +25,19 @@ export default function DashboardLogin() {
     setLoading(true);
     setError('');
 
-    // Simple password check
-    if (password === '200410154') {
-      localStorage.setItem('dashboard_auth', 'true');
+    // Try to authenticate with the given password
+    if (authenticateUser(password)) {
+      // Also set a cookie for server-side authentication
+      const token = localStorage.getItem('dashboard_auth');
+      if (token) {
+        // Set secure, http-only cookie that expires in 24 hours
+        Cookies.set('dashboard_auth', token, { 
+          expires: 1, // 1 day
+          path: '/',
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict'
+        });
+      }
       router.push('/dashboard');
     } else {
       setError('Invalid password');

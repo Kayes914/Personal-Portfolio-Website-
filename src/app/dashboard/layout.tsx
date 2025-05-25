@@ -5,6 +5,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { isAuthenticated } from '@/utils/auth';
 
 export default function DashboardLayoutWrapper({
   children,
@@ -24,11 +25,8 @@ export default function DashboardLayoutWrapper({
     if (pathname !== '/dashboard/login') {
       setLoading(true);
       
-      // Check if user is authenticated
-      const isAuthenticated = localStorage.getItem('dashboard_auth') === 'true';
-      
-      // If not authenticated and not on login page, redirect to login
-      if (!isAuthenticated) {
+      // Check if user is authenticated using the new utility
+      if (!isAuthenticated()) {
         router.push('/dashboard/login');
       } else {
         setLoading(false);

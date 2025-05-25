@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
-import ContactModal from '@/components/ContactModal';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 interface AboutSettings {
   title: string;
@@ -28,7 +28,6 @@ const About = () => {
   const [settings, setSettings] = useState<AboutSettings>(defaultSettings);
   const [loading, setLoading] = useState(true);
   const [imageError, setImageError] = useState<string | null>(null);
-  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
 
   const fetchSettings = async () => {
     try {
@@ -99,27 +98,6 @@ const About = () => {
   useEffect(() => {
     setIsMounted(true);
     fetchSettings();
-
-    // Subscribe to changes
-    const channel = supabase
-      .channel('about_settings_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'about_settings'
-        },
-        (payload) => {
-          console.log('Change received!', payload);
-          fetchSettings();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, []);
 
   // Don't render anything on server-side to avoid hydration issues
@@ -229,20 +207,52 @@ const About = () => {
                     ))}
                   </div>
 
-                  <div className="mt-8 flex items-center gap-4">
-                    <button
-                      onClick={() => setIsContactModalOpen(true)}
-                      className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-purple-600 to-blue-600 text-white font-medium hover:from-purple-700 hover:to-blue-700 transition-all duration-300"
-                    >
-                      Let's Connect
-                      <ArrowRight className="w-4 h-4" />
-                    </button>
-                    <a
-                      href="#works"
-                      className="text-slate-300 hover:text-white transition-colors duration-200"
-                    >
-                      View My Work
-                    </a>
+                  {/* Core Tools Card */}
+                  <div className="mt-10">
+                    <div className="rounded-2xl bg-slate-800/70 border border-slate-700/40 shadow-xl p-6 flex flex-col gap-4 max-w-xl">
+                      <h4 className="text-lg font-semibold text-white mb-2 flex items-center gap-2">
+                        <span className="inline-block w-6 h-6 bg-gradient-to-tr from-purple-400 to-blue-400 rounded-full mr-2"></span>
+                        Core Tools & Technologies
+                      </h4>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                        <div className="flex items-center gap-3">
+                          <img src="/react.svg" alt="React" className="w-8 h-8" />
+                          <span className="text-slate-200 text-sm">React</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <img src="/nextjs.svg" alt="Next.js" className="w-8 h-8 bg-white rounded-full p-1" />
+                          <span className="text-slate-200 text-sm">Next.js</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <img src="/node-js-svgrepo-com.svg" alt="Node.js" className="w-8 h-8" />
+                          <span className="text-slate-200 text-sm">Node.js</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <img src="/javascript.svg" alt="JavaScript" className="w-8 h-8" />
+                          <span className="text-slate-200 text-sm">JavaScript</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <img src="/php.svg" alt="PHP" className="w-8 h-8" />
+                          <span className="text-slate-200 text-sm">PHP</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <img src="/laravel-svgrepo-com.svg" alt="Laravel" className="w-8 h-8" />
+                          <span className="text-slate-200 text-sm">Laravel</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <img src="/mysql-logo-svgrepo-com.svg" alt="MySQL" className="w-8 h-8" />
+                          <span className="text-slate-200 text-sm">MySQL</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <img src="/mongodb.svg" alt="MongoDB" className="w-8 h-8" />
+                          <span className="text-slate-200 text-sm">MongoDB</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <img src="/postgresql.svg" alt="PostgreSQL" className="w-8 h-8 bg-blue-800 rounded p-1" />
+                          <span className="text-slate-200 text-sm">PostgreSQL</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -250,11 +260,6 @@ const About = () => {
           </div>
         </div>
       </section>
-      
-      <ContactModal 
-        isOpen={isContactModalOpen} 
-        onClose={() => setIsContactModalOpen(false)} 
-      />
     </>
   );
 };

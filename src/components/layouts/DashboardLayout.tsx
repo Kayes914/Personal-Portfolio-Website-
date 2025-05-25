@@ -14,6 +14,8 @@ import {
   User,
   Mail
 } from 'lucide-react';
+import { removeAuthToken } from '@/utils/auth';
+import Cookies from 'js-cookie';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -41,7 +43,9 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
   const handleLogout = () => {
     if (isClient) {
-      localStorage.removeItem('dashboard_auth');
+      // Remove auth from both localStorage and cookies
+      removeAuthToken();
+      Cookies.remove('dashboard_auth', { path: '/' });
       router.push('/dashboard/login');
     }
   };
