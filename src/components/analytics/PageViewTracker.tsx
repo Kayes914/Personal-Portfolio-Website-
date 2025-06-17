@@ -18,6 +18,9 @@ export default function PageViewTracker() {
       // Track in Google Analytics
       const url = pathname + searchParams.toString();
       pageview(url);
+      
+      // Log for debugging
+      console.log('Page view tracked:', pathname);
     }
   }, [pathname, searchParams]);
 
