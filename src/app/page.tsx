@@ -4,6 +4,7 @@ import About from "@/components/sections/About";
 import Footer from "@/components/sections/Footer";
 import Navbar from "@/components/Navbar";
 import JsonLd from "@/components/SEO/JsonLd";
+import DebugGA from "./debug-ga";
 
 export default function Home() {
   // Portfolio structured data
@@ -25,6 +26,9 @@ export default function Home() {
     <main className="min-h-screen">
       {/* Add structured data for SEO */}
       <JsonLd type="Portfolio" data={portfolioData} />
+      
+      {/* Debug component - only shows in development */}
+      <DebugGA />
       
       <Navbar />
       <Hero />

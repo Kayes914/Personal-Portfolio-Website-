@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import PageViewTracker from "@/components/analytics/PageViewTracker";
 import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
 import GADebugger from "@/components/analytics/GADebugger";
+import CustomHead from "./custom-head";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -92,6 +93,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <CustomHead />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
