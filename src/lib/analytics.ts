@@ -7,11 +7,11 @@ declare global {
 }
 
 // Google Analytics utility functions
-export const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || 'G-01XWVE5YTT';
+export const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
 
 // Initialize Google Analytics
 export const initGA = () => {
-  if (typeof window !== 'undefined') {
+  if (typeof window !== 'undefined' && GA_MEASUREMENT_ID) {
     // Clear any existing GA cookies
     document.cookie = '_ga=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
     document.cookie = '_gid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
@@ -40,7 +40,7 @@ export const initGA = () => {
 
 // Track page views
 export const pageview = (url: string) => {
-  if (typeof window !== 'undefined' && window.gtag) {
+  if (typeof window !== 'undefined' && window.gtag && GA_MEASUREMENT_ID) {
     window.gtag('config', GA_MEASUREMENT_ID, {
       page_path: url,
       send_page_view: true

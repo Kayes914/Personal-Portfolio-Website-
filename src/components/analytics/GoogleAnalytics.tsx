@@ -6,17 +6,22 @@ import Script from 'next/script';
 import { pageview } from '@/lib/analytics';
 
 export default function GoogleAnalytics({ 
-  GA_MEASUREMENT_ID = 'G-01XWVE5YTT' // Force the correct ID
+  GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID
 }: { 
   GA_MEASUREMENT_ID?: string 
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   
-  // Use the correct ID from environment variable or fallback to hardcoded value
-  const measurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || 'G-01XWVE5YTT';
+  // Use the measurement ID from props or environment variable
+  const measurementId = GA_MEASUREMENT_ID;
 
   useEffect(() => {
+    if (!measurementId) {
+      console.warn('Google Analytics Measurement ID is not defined');
+      return;
+    }
+
     // Clear any potentially cached GA data
     if (typeof window !== 'undefined') {
       // Remove any cached GA cookies
@@ -33,6 +38,11 @@ export default function GoogleAnalytics({
     const url = pathname + searchParams.toString();
     pageview(url);
   }, [pathname, searchParams, measurementId]);
+
+  // Don't render anything if measurement ID is not defined
+  if (!measurementId) {
+    return null;
+  }
 
   return (
     <>
