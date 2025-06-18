@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Suspense } from "react";
 import PageViewTracker from "@/components/analytics/PageViewTracker";
-import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
 import AnalyticsReset from "./analytics-reset";
+import CustomHead from "./custom-head";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -93,12 +93,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <CustomHead />
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <Suspense fallback={null}>
           <AnalyticsReset />
-          <GoogleAnalytics GA_MEASUREMENT_ID={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID} />
           <PageViewTracker />
         </Suspense>
         {children}

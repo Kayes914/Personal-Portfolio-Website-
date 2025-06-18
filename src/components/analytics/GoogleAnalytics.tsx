@@ -3,67 +3,82 @@
 import { useEffect } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import Script from 'next/script';
-import { pageview } from '@/lib/analytics';
+import { pageview, GA_MEASUREMENT_ID } from '@/lib/analytics';
 
-export default function GoogleAnalytics({ 
-  GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID
-}: { 
-  GA_MEASUREMENT_ID?: string 
-}) {
+export default function GoogleAnalytics() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  
-  // Use the measurement ID from props or environment variable
-  const measurementId = GA_MEASUREMENT_ID;
+
+  // Log the measurement ID during component initialization
+  useEffect(() => {
+    console.log('GoogleAnalytics component: Using measurement ID:', GA_MEASUREMENT_ID);
+    
+    // Manually insert the script tag if needed
+    if (GA_MEASUREMENT_ID && typeof window !== 'undefined' && !document.querySelector(`script[src*="${GA_MEASUREMENT_ID}"]`)) {
+      console.log('Manually inserting GA script tag');
+      const script = document.createElement('script');
+      script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
+      script.async = true;
+      document.head.appendChild(script);
+      
+      // Initialize gtag
+      window.dataLayer = window.dataLayer || [];
+      window.gtag = function() {
+        window.dataLayer.push(arguments);
+      };
+      window.gtag('js', new Date());
+      window.gtag('config', GA_MEASUREMENT_ID, {
+        page_path: window.location.pathname,
+      });
+    }
+  }, []);
 
   useEffect(() => {
-    if (!measurementId) {
-      console.warn('Google Analytics Measurement ID is not defined');
-      return;
+    // Track page view when route changes
+    if (GA_MEASUREMENT_ID && typeof window !== 'undefined' && typeof window.gtag === 'function') {
+      const url = pathname + searchParams.toString();
+      pageview(url);
     }
-
-    // Clear any potentially cached GA data
-    if (typeof window !== 'undefined') {
-      // Remove any cached GA cookies
-      document.cookie = '_ga=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-      document.cookie = '_gid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-      document.cookie = '_gat=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-      
-      // Clear any existing dataLayer
-      window.dataLayer = [];
-      
-      console.log('Google Analytics setup with ID:', measurementId);
-    }
-    
-    const url = pathname + searchParams.toString();
-    pageview(url);
-  }, [pathname, searchParams, measurementId]);
+  }, [pathname, searchParams]);
 
   // Don't render anything if measurement ID is not defined
-  if (!measurementId) {
+  if (!GA_MEASUREMENT_ID) {
+    console.warn('GoogleAnalytics component: No measurement ID found');
     return null;
   }
 
   return (
     <>
       <Script
+        id="google-analytics-script"
         strategy="afterInteractive"
-        src={`https://www.googletagmanager.com/gtag/js?id=${measurementId}`}
+        src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+        onLoad={() => {
+          console.log('Google Analytics script loaded successfully');
+        }}
+        onError={(e) => {
+          console.error('Failed to load Google Analytics script:', e);
+        }}
       />
       <Script
-        id="google-analytics"
+        id="google-analytics-config"
         strategy="afterInteractive"
         dangerouslySetInnerHTML={{
           __html: `
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
-            gtag('config', '${measurementId}', {
+            gtag('config', '${GA_MEASUREMENT_ID}', {
               page_path: window.location.pathname,
-              send_page_view: true,
-              cookie_flags: 'max-age=7200;secure;samesite=none'
             });
+            console.log('GA config script executed');
           `,
+        }}
+        onLoad={() => {
+          console.log('Google Analytics configuration loaded');
+        }}
+        onError={(e) => {
+          console.error('Failed to load Google Analytics configuration:', e);
         }}
       />
     </>
