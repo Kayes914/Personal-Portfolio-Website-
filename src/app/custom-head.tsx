@@ -1,35 +1,29 @@
 'use client';
 
 import Script from 'next/script';
-import { useEffect } from 'react';
 
 export default function CustomHead() {
-  const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
-  
-  useEffect(() => {
-    console.log('Google Analytics Measurement ID:', GA_MEASUREMENT_ID || 'MISSING');
-  }, [GA_MEASUREMENT_ID]);
-  
+  const gaId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || 'G-01XWVE5YTT';
+
   return (
     <>
-      {/* Global Site Tag (gtag.js) - Google Analytics */}
+      {/* Google Analytics - Using async loading to avoid errors */}
       <Script
+        id="ga-tag-manager"
         strategy="afterInteractive"
-        src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+        async
+        src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
       />
       <Script
-        id="gtag-init"
+        id="ga-config"
         strategy="afterInteractive"
         dangerouslySetInnerHTML={{
           __html: `
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
-            gtag('config', '${GA_MEASUREMENT_ID}', {
-              page_path: window.location.pathname,
-            });
-            console.log('Google Analytics initialized');
-          `,
+            gtag('config', '${gaId}', { page_path: window.location.pathname });
+          `
         }}
       />
     </>

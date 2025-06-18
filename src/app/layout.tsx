@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Suspense } from "react";
 import PageViewTracker from "@/components/analytics/PageViewTracker";
-import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
 import AnalyticsReset from "./analytics-reset";
+import CustomHead from "./custom-head";
+import NetworkDebug from "@/components/analytics/NetworkDebug";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -37,6 +38,10 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   alternates: {
     canonical: "/",
+  },
+  // Block third-party analytics
+  other: {
+    'content-security-policy': "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com;"
   },
   // Open Graph metadata
   openGraph: {
@@ -93,14 +98,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <CustomHead />
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <Suspense fallback={null}>
           <AnalyticsReset />
-          <GoogleAnalytics GA_MEASUREMENT_ID={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID} />
           <PageViewTracker />
         </Suspense>
+        {process.env.NODE_ENV === 'development' && <NetworkDebug />}
         {children}
       </body>
     </html>
