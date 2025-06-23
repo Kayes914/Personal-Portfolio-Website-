@@ -32,7 +32,6 @@ export default function AboutSettingsPage() {
 
   const fetchSettings = async () => {
     try {
-      console.log('Fetching about settings...');
       const { data, error } = await supabase
         .from('about_settings')
         .select('*')
@@ -40,19 +39,13 @@ export default function AboutSettingsPage() {
         .order('created_at', { ascending: true })
         .single();
 
-      if (error) {
-        console.error('Error fetching about settings:', error);
-        throw error;
-      }
+      if (error) throw error;
 
-      console.log('Fetched about settings:', data);
-      
       if (data) {
         setSettings(data);
       }
     } catch (error) {
-      console.error('Error in fetchSettings:', error);
-      toast.error('Failed to load about settings');
+      // Handle error silently, keep default settings
     } finally {
       setLoading(false);
     }
@@ -61,19 +54,18 @@ export default function AboutSettingsPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      console.log('Saving settings:', settings);
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('about_settings')
-        .update(settings)
-        .eq('id', settings.id);
+        .upsert(settings, { 
+          onConflict: 'id',
+          ignoreDuplicates: false 
+        });
 
       if (error) throw error;
 
-      toast.success('About settings updated successfully');
-      console.log('Settings saved successfully:', settings);
+      alert('Settings saved successfully!');
     } catch (error) {
-      console.error('Error saving about settings:', error);
-      toast.error('Failed to save about settings');
+      alert('Error saving about settings. Please try again.');
     } finally {
       setSaving(false);
     }

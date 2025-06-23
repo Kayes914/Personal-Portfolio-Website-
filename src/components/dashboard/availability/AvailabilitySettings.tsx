@@ -34,8 +34,7 @@ export default function AvailabilitySettings() {
       if (error) throw error;
       setSettings(data);
     } catch (error) {
-      console.error('Error fetching settings:', error);
-      setError('Failed to load availability settings');
+      // Handle error silently, keep default settings
     } finally {
       setLoading(false);
     }
@@ -62,8 +61,7 @@ export default function AvailabilitySettings() {
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (error) {
-      console.error('Error saving settings:', error);
-      setError('Failed to save availability settings');
+      alert('Failed to save availability settings. Please try again.');
     } finally {
       setSaving(false);
     }

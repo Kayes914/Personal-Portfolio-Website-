@@ -7,6 +7,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { createPortal } from 'react-dom';
 import { supabase } from '@/lib/supabase';
+import React from 'react';
 
 interface Project {
   id: number;
@@ -37,9 +38,10 @@ const Works = () => {
         setIsLoading(true);
         setError(null);
         
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
           .from('projects')
           .select('*')
+          .eq('is_client_project', false) // Only fetch personal projects
           .order('created_at', { ascending: false });
           
         if (error) {
@@ -52,7 +54,7 @@ const Works = () => {
         }
         
         // Transform data from Supabase format to our component format
-        const formattedProjects: Project[] = data.map(item => ({
+        const formattedProjects: Project[] = data.map((item: any) => ({
           id: item.id,
           title: item.title,
           description: item.description || '',
@@ -67,9 +69,9 @@ const Works = () => {
         }));
         
         setProjects(formattedProjects);
-      } catch (err: any) {
-        console.error('Error fetching projects:', err);
+      } catch (err) {
         setError('Failed to load projects');
+        setProjects([]);
       } finally {
         setIsLoading(false);
       }
@@ -101,31 +103,20 @@ const Works = () => {
   }, [activeCategory]);
 
   return (
-    <section id="works" className="relative py-24 overflow-hidden">
-      {/* Improved background with gradient mesh and particles */}
-      <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
-        {/* Mesh gradient blobs */}
-        <div className="absolute top-0 left-0 w-full h-full overflow-hidden opacity-20">
-          <div className="absolute -top-20 -right-20 w-96 h-96 bg-purple-600/30 rounded-full blur-3xl" />
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl" />
-          <div className="absolute bottom-1/3 right-1/4 w-96 h-96 bg-cyan-600/20 rounded-full blur-3xl" />
-          <div className="absolute -bottom-20 -left-20 w-96 h-96 bg-indigo-600/30 rounded-full blur-3xl" />
-        </div>
-        
-        {/* Subtle grid pattern overlay */}
-        <div 
-          className="absolute inset-0 opacity-10"
-          style={{
-            backgroundImage: `linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px), 
-                              linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px)`,
-            backgroundSize: '40px 40px'
-          }}
-        />
-      </div>
-
+    <section id="works" className="relative py-24 overflow-hidden bg-[#0B1120]">
       <div className="container relative z-10 mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section header */}
         <div className="max-w-3xl mx-auto text-center mb-16">
+          <motion.div 
+            className="inline-flex items-center px-4 py-1 mb-6 rounded-full bg-purple-900/30 border border-purple-700/30"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+          >
+            <span className="text-sm font-medium text-purple-400">Personal Projects</span>
+          </motion.div>
+          
           <motion.h2 
             className="text-3xl md:text-4xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-cyan-400 to-blue-400"
             initial={{ opacity: 0, y: 20 }}
@@ -133,7 +124,7 @@ const Works = () => {
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
           >
-            My Recent Works
+            My Personal Projects
           </motion.h2>
           <motion.p 
             className="text-lg text-slate-300 mb-8"
@@ -142,8 +133,8 @@ const Works = () => {
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.1 }}
           >
-            Explore some of my latest projects, showcasing my expertise in building
-            modern web applications and mobile apps.
+            Explore projects I've built to experiment with new technologies,
+            solve interesting problems, and showcase my coding skills.
           </motion.p>
           
           {/* Filter buttons */}
@@ -290,71 +281,249 @@ const Works = () => {
   );
 };
 
-// ImageModal Component
-const ImageModal = ({ 
-  isOpen, 
-  onClose, 
-  image, 
-  title 
-}: { 
-  isOpen: boolean; 
-  onClose: () => void; 
-  image: string; 
-  title: string;
-}) => {
-  // Prevent body scroll when modal is open
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    
-    // Cleanup when component unmounts
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [isOpen]);
+// ProjectModal component
+const ProjectModal = ({ project, onClose }: { project: Project, onClose: () => void }) => {
+  // Create portal for the modal
+  const [mounted, setMounted] = useState(false);
+  const backdropRef = React.useRef<HTMLDivElement>(null);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    setMounted(true);
+    // Prevent scrolling when modal is open
+    document.body.style.overflow = 'hidden';
+    
+    // Add escape key listener
+    const handleEscapeKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    
+    // Add click outside listener
+    const handleClickOutside = (e: MouseEvent) => {
+      if (backdropRef.current === e.target) {
+        onClose();
+      }
+    };
+    
+    window.addEventListener('keydown', handleEscapeKey);
+    document.addEventListener('mousedown', handleClickOutside);
+    
+    // Cleanup function
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', handleEscapeKey);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [onClose]);
+
+  if (!mounted) return null;
 
   return createPortal(
     <div 
-      className="fixed inset-0 z-[100] bg-black/90 p-4 md:p-6"
-      onClick={onClose}
+      ref={backdropRef}
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm overflow-y-auto"
     >
-      <div 
-        className="absolute inset-0 overflow-auto scrollbar-thin scrollbar-track-slate-900 scrollbar-thumb-slate-700 hover:scrollbar-thumb-slate-600" 
-        onClick={(e) => e.stopPropagation()}
+      {/* Close Button - Positioned outside modal content for guaranteed accessibility */}
+      <button
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onClose();
+        }}
+        onTouchEnd={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onClose();
+        }}
+        className="fixed top-4 right-4 z-[60] p-3 bg-red-600/95 hover:bg-red-500/95 rounded-full transition-all duration-200 backdrop-blur-sm border border-red-500/50 shadow-2xl"
+        style={{ 
+          touchAction: 'manipulation',
+          WebkitTapHighlightColor: 'transparent',
+          userSelect: 'none'
+        }}
+        aria-label="Close modal"
+        type="button"
       >
-        {/* Close button */}
-        <button 
-          onClick={(e) => {
-            e.stopPropagation();
-            onClose();
-          }}
-          className="fixed top-6 right-6 p-3 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full text-white transition-all duration-200 z-[101] shadow-lg hover:shadow-white/20"
-        >
-          <X size={24} />
-        </button>
-        
-        {/* Image container */}
-        <div 
-          className="min-h-full flex items-start justify-center px-1 md:px-1 pt-20"
-          onClick={(e) => {
-            e.stopPropagation();
-            onClose();
-          }}
-        >
-          <img 
-            src={image} 
-            alt={title}
-            className="w-auto rounded-lg shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: '75vw' }}
-          />
+        <X className="w-5 h-5 text-white" />
+      </button>
+
+      {/* Modal container with animation */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        transition={{ duration: 0.3 }}
+        className="relative w-full max-w-6xl max-h-[95vh] sm:max-h-[90vh] bg-slate-900 rounded-xl sm:rounded-2xl shadow-2xl border border-slate-700 overflow-hidden flex flex-col my-auto"
+      >
+        {/* Content container - Single scrollable area on mobile */}
+        <div className="h-full overflow-y-auto">
+          <div className="lg:flex lg:min-h-full">
+                      {/* Left side: Project details */}
+            <div className="lg:w-2/3 p-4 sm:p-6 lg:p-8">
+            <div className="mb-6">
+              {/* Project title with gradient */}
+              <div className="mb-6 sm:mb-8 pb-4 sm:pb-6 border-b border-slate-700/50 pr-12">
+                <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-2">
+                  <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-cyan-400 to-blue-400">
+                    {project.title}
+                  </span>
+                </h2>
+              </div>
+              
+              {/* Project description */}
+              <div className="bg-slate-900/70 rounded-xl p-4 sm:p-6 border border-slate-700/40">
+                <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
+                  <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-400">Project Overview</span>
+                </h3>
+                
+                <div className="prose prose-invert prose-slate max-w-none pl-3 sm:pl-4 border-l-2 border-cyan-800/50">
+                  <p className="text-sm sm:text-base text-slate-300 whitespace-pre-line leading-relaxed">
+                    {project.description}
+                  </p>
+                </div>
+              </div>
+              
+              {/* Project highlights - moved to bottom */}
+              <div className="mt-6 sm:mt-8 bg-slate-900/70 rounded-xl p-4 sm:p-6 border border-slate-700/40">
+                <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-purple-400"></span>
+                  <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-indigo-400">Key Highlights</span>
+                </h3>
+                
+                <ul className="space-y-2 sm:space-y-3 pl-3 sm:pl-4 border-l-2 border-purple-800/50">
+                  <li className="flex items-start gap-2">
+                    <span className="mt-1 text-cyan-400">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                      </svg>
+                    </span>
+                    <span className="text-sm sm:text-base text-slate-300">
+                      Personal project built with {project.tech.length} different technologies
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="mt-1 text-cyan-400">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                      </svg>
+                    </span>
+                    <span className="text-sm sm:text-base text-slate-300">
+                      {project.category === 'web' ? 'Web application with responsive design' : 'Application with intuitive user interface'}
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="mt-1 text-cyan-400">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                      </svg>
+                    </span>
+                    <span className="text-sm sm:text-base text-slate-300">
+                      {project.links.live ? "Deployed with live demo available" : "Completed project with source code available"}
+                    </span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          
+            {/* Right side: Image, tech stack, links */}
+            <div className="lg:w-1/3 bg-slate-800/50 border-t lg:border-t-0 lg:border-l border-slate-700/50 flex flex-col lg:h-full">
+            {/* Image - 16:9 aspect ratio */}
+            <div className="relative w-full pt-[56.25%] overflow-hidden mt-4 sm:mt-6 lg:mt-8 mx-4 sm:mx-6 lg:mx-0 rounded-lg lg:rounded-none">
+              {project.image ? (
+                <div 
+                  className="absolute inset-0 bg-cover bg-center"
+                  style={{ backgroundImage: `url(${project.image})` }}
+                />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center bg-slate-800">
+                  <span className="text-lg text-white/70 font-medium px-6 py-3 bg-slate-900/50 backdrop-blur-sm rounded-lg">
+                    {project.isLongImage ? 'Project Screenshot' : 'App Screenshot'}
+                  </span>
+                </div>
+              )}
+            </div>
+            
+            {/* Tech stack and details */}
+            <div className="p-4 sm:p-6 flex-1 overflow-y-auto">
+              {/* Category info card */}
+              <div className="mb-4 sm:mb-6 bg-slate-900/70 rounded-xl p-3 sm:p-4 border border-slate-700/40">
+                <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-white mb-2 sm:mb-3 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-cyan-400"></span> 
+                  <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-400">Category</span>
+                </h3>
+                <p className="text-xs sm:text-sm lg:text-base text-slate-300 pl-3 sm:pl-4 border-l-2 border-cyan-800/50">
+                  {project.category === 'web' ? 'Web Application' : 'Application'}
+                </p>
+              </div>
+              
+              {/* Tech stack info card */}
+              <div className="mb-6 sm:mb-8 bg-slate-900/70 rounded-xl p-3 sm:p-4 border border-slate-700/40">
+                <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-white mb-2 sm:mb-3 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-blue-400"></span>
+                  <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-400">Technology Stack</span>
+                </h3>
+                
+                <div className="flex flex-wrap gap-1.5 sm:gap-2 pl-3 sm:pl-4 border-l-2 border-blue-800/50">
+                  {project.tech.map((tech: string, i) => (
+                    <span 
+                      key={i} 
+                      className="px-2 sm:px-3 py-1 text-xs font-medium bg-slate-800/80 text-slate-300 rounded-full border border-slate-700/50"
+                    >
+                      {tech}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Action buttons */}
+              <div className="flex flex-col gap-2 sm:gap-3 mt-auto pb-2">
+                {project.links.live && (
+                  <Link 
+                    href={project.links.live} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="relative inline-flex items-center justify-center px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-indigo-800 to-purple-900 rounded-lg text-white font-medium overflow-hidden group border border-indigo-700/50 w-full"
+                    onClick={(e) => e.stopPropagation()} // Prevent event bubbling
+                  >
+                    {/* Glass angle animation overlay */}
+                    <span className="absolute inset-0 overflow-hidden">
+                      <span className="absolute -inset-[100%] skew-x-12 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-glass-sweep"></span>
+                    </span>
+                    
+                    <Globe className="w-3 sm:w-4 h-3 sm:h-4 mr-1.5 sm:mr-2 relative z-10 text-cyan-300" />
+                    <span className="relative z-10 text-cyan-50 font-semibold tracking-wide text-sm sm:text-base">View Live Demo</span>
+                  </Link>
+                )}
+                
+                {project.links.github && (
+                  <Link 
+                    href={project.links.github} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="relative inline-flex items-center justify-center px-4 sm:px-6 py-2.5 sm:py-3 bg-slate-900 rounded-lg text-white font-medium overflow-hidden group border border-slate-700/50 w-full"
+                    onClick={(e) => e.stopPropagation()} // Prevent event bubbling
+                  >
+                    {/* Glass angle animation overlay */}
+                    <span className="absolute inset-0 overflow-hidden">
+                      <span className="absolute -inset-[100%] skew-x-12 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-glass-sweep"></span>
+                    </span>
+                    
+                    <Github className="w-3 sm:w-4 h-3 sm:h-4 mr-1.5 sm:mr-2 relative z-10 text-purple-300" />
+                    <span className="relative z-10 text-purple-200 font-semibold tracking-wide text-sm sm:text-base">View Source Code</span>
+                  </Link>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
+      </motion.div>
     </div>,
     document.body
   );
@@ -400,53 +569,105 @@ const ProjectCard = ({ project, index }: { project: Project, index: number }) =>
         </div>
       </div>
 
-      {/* Project details */}
-      <div className="p-6" onClick={(e) => e.stopPropagation()}>
-        <div className="flex justify-between items-start mb-4">
-          <h3 className="text-xl font-bold text-white">
-            {project.title}
-          </h3>
-          <span className="px-3 py-1 text-xs font-medium bg-slate-800/80 text-slate-300 rounded-full">
-            {project.category === 'web' ? 'Web' : 'App'}
-          </span>
-        </div>
-        <p className="text-slate-300 mb-6">
+      {/* Project details - Enhanced design */}
+      <div className="p-6 bg-gradient-to-b from-slate-900/0 to-slate-900/80">
+        {/* Title - Professional styling with Noto Sans font */}
+        <h3 className="text-xl font-bold mb-2 text-white font-['Noto_Sans']">
+          {project.title}
+        </h3>
+        
+        {/* Description - Limited to single line */}
+        <p className="text-slate-300 mb-4 truncate">
           {project.description}
         </p>
-        <div className="flex flex-wrap gap-2 mb-6">
-          {project.tech.map((tech: string) => (
-            <span 
-              key={tech} 
-              className="px-3 py-1 text-xs font-medium bg-slate-800/60 text-slate-300 rounded-full"
-            >
-              {tech}
-            </span>
-          ))}
+        
+        {/* Divider */}
+        <div className="h-px bg-slate-700/30 my-4"></div>
+        
+        {/* Tech stack with improved visual */}
+        <div className="mb-5">
+          <div className="flex flex-wrap gap-2">
+            {project.tech.slice(0, 3).map((tech: string, i) => (
+              <span 
+                key={i} 
+                className="px-3 py-1 text-xs font-medium bg-slate-800/80 text-slate-300 rounded-full border border-slate-700/30 transition-all duration-300 hover:bg-slate-800 hover:border-slate-600/50"
+              >
+                {tech}
+              </span>
+            ))}
+            {project.tech.length > 3 && (
+              <span className="px-3 py-1 text-xs font-medium bg-slate-800/80 text-slate-300 rounded-full border border-slate-700/30">
+                +{project.tech.length - 3} more
+              </span>
+            )}
+          </div>
         </div>
         
-        {/* Action buttons */}
-        <div className="flex items-center justify-between mt-6">
-          <Link 
-            href={project.links.live} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="inline-flex items-center justify-center px-4 py-2 bg-purple-600/90 hover:bg-purple-600 rounded-lg text-white text-sm font-medium transition-colors duration-300 ml-auto"
+        {/* Action buttons - Enhanced */}
+        <div className="flex items-center justify-end gap-3">
+          {project.links.live && (
+            <Link 
+              href={project.links.live} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="relative inline-flex items-center justify-center px-6 py-2.5 bg-gradient-to-r from-indigo-800 to-purple-900 rounded-lg text-white font-medium overflow-hidden group border border-indigo-700/50 shadow-md hover:shadow-lg hover:border-indigo-500/80 transition-all duration-300"
+              onClick={(e) => e.stopPropagation()} // Prevent modal from opening when clicking the button
+            >
+              {/* Glass angle animation overlay */}
+              <span className="absolute inset-0 overflow-hidden">
+                <span className="absolute -inset-[100%] skew-x-12 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-glass-sweep"></span>
+              </span>
+              
+              <Globe className="w-4 h-4 mr-2 relative z-10 text-cyan-300" />
+              <span className="relative z-10 text-cyan-50 font-semibold tracking-wide">Live Demo</span>
+            </Link>
+          )}
+          
+          {/* View Details Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsModalOpen(true);
+            }}
+            className="inline-flex items-center justify-center px-4 py-2.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-white text-sm font-medium transition-all duration-300 border border-slate-700/50 hover:border-slate-500/80"
           >
-            <Globe className="w-4 h-4 mr-2" />
-            Live Demo
-          </Link>
+            <span>Details</span>
+            <ArrowRight className="w-4 h-4 ml-1" />
+          </button>
         </div>
       </div>
 
-      {/* Image Modal */}
-      <ImageModal 
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        image={project.image}
-        title={project.title}
-      />
+      {/* Project Modal */}
+      {isModalOpen && (
+        <ProjectModal 
+          project={project}
+          onClose={() => {
+            setIsModalOpen(false);
+          }}
+        />
+      )}
     </motion.div>
   );
 };
 
-export default Works; 
+// Add animation keyframes
+export default Works;
+
+{/* Add animation keyframes */}
+<style jsx global>{`
+  @keyframes glass-sweep {
+    0% {
+      transform: translateX(-100%);
+    }
+    20% {
+      transform: translateX(100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+  
+  .animate-glass-sweep {
+    animation: glass-sweep 6s ease-out infinite;
+  }
+`}</style> 

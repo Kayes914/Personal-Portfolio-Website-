@@ -23,16 +23,15 @@ interface DashboardStats {
 export default function DashboardHomePage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        console.log('Dashboard: Starting to fetch stats...');
         const data = await getDashboardStats();
-        console.log('Dashboard: Received stats:', data);
         setStats(data);
       } catch (error) {
-        console.error('Dashboard: Error fetching stats:', error);
+        setError('Failed to load dashboard statistics');
       } finally {
         setLoading(false);
       }
@@ -69,8 +68,20 @@ export default function DashboardHomePage() {
     }
   ];
 
-  console.log('Dashboard: Current stats state:', stats);
-  console.log('Dashboard: Loading state:', loading);
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="bg-slate-900 rounded-lg border border-slate-800 p-6 mb-8">
+          <h1 className="text-2xl font-bold text-white mb-2">Dashboard Overview</h1>
+          <p className="text-slate-400">Monitor your portfolio performance</p>
+        </div>
+
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -79,29 +90,23 @@ export default function DashboardHomePage() {
         <p className="text-slate-400">Monitor your portfolio performance</p>
       </div>
 
-      {loading ? (
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {statsData.map((stat) => (
-            <div 
-              key={stat.title}
-              className="bg-slate-900 border border-slate-800 rounded-xl p-6 hover:border-slate-700 transition-all duration-200"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className={`w-12 h-12 ${stat.color} rounded-lg flex items-center justify-center`}>
-                  <stat.icon className="text-white" size={24} />
-                </div>
-                <span className="text-xs font-medium text-slate-400">{stat.trend}</span>
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        {statsData.map((stat) => (
+          <div 
+            key={stat.title}
+            className="bg-slate-900 border border-slate-800 rounded-xl p-6 hover:border-slate-700 transition-all duration-200"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className={`w-12 h-12 ${stat.color} rounded-lg flex items-center justify-center`}>
+                <stat.icon className="text-white" size={24} />
               </div>
-              <h3 className="text-3xl font-bold text-white mb-2">{stat.value}</h3>
-              <p className="text-slate-400 text-sm">{stat.title}</p>
+              <span className="text-xs font-medium text-slate-400">{stat.trend}</span>
             </div>
-          ))}
-        </div>
-      )}
+            <h3 className="text-3xl font-bold text-white mb-2">{stat.value}</h3>
+            <p className="text-slate-400 text-sm">{stat.title}</p>
+          </div>
+        ))}
+      </div>
     </DashboardLayout>
   );
 } 

@@ -9,13 +9,10 @@ export default function GoogleAnalytics() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  // Log the measurement ID during component initialization
+  // Initialize Google Analytics
   useEffect(() => {
-    console.log('GoogleAnalytics component: Using measurement ID:', GA_MEASUREMENT_ID);
-    
     // Manually insert the script tag if needed
     if (GA_MEASUREMENT_ID && typeof window !== 'undefined' && !document.querySelector(`script[src*="${GA_MEASUREMENT_ID}"]`)) {
-      console.log('Manually inserting GA script tag');
       const script = document.createElement('script');
       script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
       script.async = true;
@@ -43,7 +40,6 @@ export default function GoogleAnalytics() {
 
   // Don't render anything if measurement ID is not defined
   if (!GA_MEASUREMENT_ID) {
-    console.warn('GoogleAnalytics component: No measurement ID found');
     return null;
   }
 
@@ -53,12 +49,6 @@ export default function GoogleAnalytics() {
         id="google-analytics-script"
         strategy="afterInteractive"
         src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
-        onLoad={() => {
-          console.log('Google Analytics script loaded successfully');
-        }}
-        onError={(e) => {
-          console.error('Failed to load Google Analytics script:', e);
-        }}
       />
       <Script
         id="google-analytics-config"
@@ -71,14 +61,7 @@ export default function GoogleAnalytics() {
             gtag('config', '${GA_MEASUREMENT_ID}', {
               page_path: window.location.pathname,
             });
-            console.log('GA config script executed');
           `,
-        }}
-        onLoad={() => {
-          console.log('Google Analytics configuration loaded');
-        }}
-        onError={(e) => {
-          console.error('Failed to load Google Analytics configuration:', e);
         }}
       />
     </>

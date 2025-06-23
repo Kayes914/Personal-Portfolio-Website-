@@ -9,17 +9,9 @@ declare global {
 // Get the measurement ID from environment variable only
 export const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
 
-// Log the measurement ID during initialization
-if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-  console.log('Analytics initialized with ID:', GA_MEASUREMENT_ID);
-}
-
 // Initialize Google Analytics
 export const initGA = () => {
   if (typeof window === 'undefined' || !GA_MEASUREMENT_ID) {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('Google Analytics not initialized: Missing measurement ID or not in browser');
-    }
     return;
   }
 
@@ -43,10 +35,8 @@ export const initGA = () => {
       send_page_view: false, // We'll trigger page views manually
       cookie_flags: 'max-age=7200;secure;samesite=none'
     });
-    
-    console.log('Google Analytics initialized successfully with ID:', GA_MEASUREMENT_ID);
   } catch (error) {
-    console.error('Failed to initialize Google Analytics:', error);
+    // Silent fail
   }
 };
 
@@ -61,12 +51,8 @@ export const pageview = (url: string) => {
       page_path: url,
       send_page_view: true
     });
-    
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Page view tracked:', url, 'with ID:', GA_MEASUREMENT_ID);
-    }
   } catch (error) {
-    console.error('Error tracking page view:', error);
+    // Silent fail
   }
 };
 
@@ -87,11 +73,7 @@ export const event = ({ action, category, label, value }: {
       event_label: label,
       value: value,
     });
-    
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Event tracked:', { action, category, label, value });
-    }
   } catch (error) {
-    console.error('Error tracking event:', error);
+    // Silent fail
   }
 }; 

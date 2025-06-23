@@ -2,215 +2,181 @@
 
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
-import { ProjectsList, ProjectForm } from '@/components/dashboard/works';
-import { Plus } from 'lucide-react';
+import { ProjectForm, ProjectsList } from '@/components/dashboard/works';
 import { supabase } from '@/lib/supabase';
+import { Plus, Loader2 } from 'lucide-react';
 
-// Types
-export interface Project {
-  id: number;
+// Define Project type
+export type Project = {
+  id?: number;
   title: string;
   description: string;
   image: string;
-  category: 'web' | 'app';
-  isLongImage: boolean;
+  category: string;
   tech: string[];
+  isLongImage?: boolean;
   links: {
     live: string;
-  }
-}
+    github?: string;
+    case_study?: string;
+  };
+  isClientProject?: boolean;
+  client?: string;
+  industry?: string;
+};
 
-const ManageWorks = () => {
+export default function WorksPage() {
   const [projects, setProjects] = useState<Project[]>([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const projectsPerPage = 12; // 6 projects per row, 2 rows
-
-  // Initial form state
-  const emptyProject: Project = {
-    id: 0,
-    title: "",
-    description: "",
-    image: "",
-    isLongImage: true,
-    category: "web",
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  
+  // Default empty project
+  const defaultProject: Project = {
+    title: '',
+    description: '',
+    image: '',
+    category: 'web',
     tech: [],
+    isLongImage: false,
     links: {
-      live: ""
-    }
+      live: '',
+      github: '',
+    },
+    isClientProject: false,
+    client: '',
+    industry: '',
   };
 
-  // Fetch projects from Supabase
+  // Fetch projects on component mount
   useEffect(() => {
-    const fetchProjects = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        
-        console.log('Fetching projects from Supabase...');
-        
-        const { data, error } = await supabase
-          .from('projects')
-          .select('*')
-          .order('created_at', { ascending: false });
-        
-        if (error) {
-          console.error('Supabase error:', error);
-          throw error;
-        }
-        
-        console.log('Projects fetched successfully:', data);
-        
-        // If no data or empty array, just set empty projects
-        if (!data || data.length === 0) {
-          setProjects([]);
-          return;
-        }
-        
-        // Transform data from Supabase format to our app format
-        const formattedProjects: Project[] = data.map(item => ({
-          id: item.id,
-          title: item.title,
-          description: item.description || '',
-          image: item.image || '',
-          category: item.category as 'web' | 'app',
-          isLongImage: item.is_long_image || false,
-          tech: item.tech || [],
-          links: {
-            live: item.live_url || ''
-          }
-        }));
-        
-        setProjects(formattedProjects);
-      } catch (err: any) {
-        console.error('Error fetching projects:', err);
-        setError(`Failed to load projects: ${err?.message || 'Unknown error'}`);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchProjects();
   }, []);
 
-  // Add or edit project
-  const handleAddEdit = (project: Project | null) => {
-    setEditingProject(project);
-    setIsModalOpen(true);
+  // Fetch projects from Supabase
+  const fetchProjects = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
+      // Transform data if needed
+      const formattedProjects = data.map((project: any) => ({
+        ...project,
+        links: {
+          live: project.live_url || '',
+          github: project.github_url || '',
+          case_study: project.case_study_url || '',
+        },
+        isLongImage: project.is_long_image || false,
+        isClientProject: project.is_client_project || false,
+      }));
+
+      setProjects(formattedProjects);
+    } catch (error: any) {
+      console.error('Error fetching projects:', error.message);
+      alert('Failed to load projects. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Save project to Supabase
+  const saveProject = async (project: Project) => {
+    try {
+      const projectData = {
+        title: project.title,
+        description: project.description,
+        image: project.image,
+        category: project.category,
+        tech: project.tech,
+        is_long_image: project.isLongImage,
+        live_url: project.links.live,
+        github_url: project.links.github,
+        case_study_url: project.links.case_study,
+        is_client_project: project.isClientProject,
+        client: project.client,
+        industry: project.industry,
+      };
+
+      let result;
+
+      if (project.id) {
+        // Update existing project
+        result = await supabase
+          .from('projects')
+          .update(projectData)
+          .eq('id', project.id);
+      } else {
+        // Insert new project
+        result = await supabase
+          .from('projects')
+          .insert(projectData);
+      }
+
+      if (result.error) {
+        throw result.error;
+      }
+
+      // Refresh projects list
+      fetchProjects();
+      
+      // Close form
+      setIsFormOpen(false);
+      setEditingProject(null);
+    } catch (error: any) {
+      console.error('Error saving project:', error);
+      alert(`Failed to save project: ${error.message}`);
+      throw error;
+    }
   };
 
   // Delete project
-  const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this project?')) return;
-    
+  const deleteProject = async (id: number) => {
+    if (!window.confirm('Are you sure you want to delete this project?')) {
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('projects')
         .delete()
         .eq('id', id);
-        
-      if (error) throw error;
-      
-      // Update local state after successful deletion
-      setProjects(projects.filter(project => project.id !== id));
-    } catch (err) {
-      console.error('Error deleting project:', err);
-      alert('Failed to delete project. Please try again.');
-    }
-  };
 
-  // Save project (create or update)
-  const handleSave = async (savedProject: Project) => {
-    try {
-      // Convert from our app format to Supabase format
-      const supabaseProject = {
-        title: savedProject.title,
-        description: savedProject.description,
-        image: savedProject.image,
-        category: savedProject.category,
-        is_long_image: savedProject.isLongImage,
-        tech: savedProject.tech,
-        live_url: savedProject.links.live,
-        updated_at: new Date().toISOString()
-      };
-      
-      if (editingProject) {
-        // Update existing project
-        const { data, error } = await supabase
-          .from('projects')
-          .update(supabaseProject)
-          .eq('id', editingProject.id)
-          .select()
-          .single();
-          
-        if (error) {
-          console.error('Supabase update error:', error);
-          throw new Error(`Failed to update project: ${error.message}`);
-        }
-        
-        if (!data) {
-          throw new Error('No data returned after update');
-        }
-        
-        // Update local state
-        setProjects(projects.map(p => p.id === editingProject.id ? 
-          { ...savedProject, id: editingProject.id } : p));
-      } else {
-        // Add new project
-        const { data, error } = await supabase
-          .from('projects')
-          .insert([{ ...supabaseProject, created_at: new Date().toISOString() }])
-          .select()
-          .single();
-          
-        if (error) {
-          console.error('Supabase insert error:', error);
-          throw new Error(`Failed to create project: ${error.message}`);
-        }
-        
-        if (!data) {
-          throw new Error('No data returned after insert');
-        }
-        
-        // Add the new project to local state with the ID from Supabase
-        const newProject: Project = {
-          ...savedProject,
-          id: data.id
-        };
-        
-        setProjects([newProject, ...projects]);
+      if (error) {
+        throw error;
       }
-      
-      setIsModalOpen(false);
-      setEditingProject(null);
-    } catch (err: any) {
-      console.error('Error saving project:', err);
-      alert(`Failed to save project: ${err.message || 'Unknown error'}`);
+
+      // Refresh projects list
+      fetchProjects();
+    } catch (error: any) {
+      console.error('Error deleting project:', error);
+      alert(`Failed to delete project: ${error.message}`);
     }
   };
 
-  // Calculate pagination
-  const indexOfLastProject = currentPage * projectsPerPage;
-  const indexOfFirstProject = indexOfLastProject - projectsPerPage;
-  const currentProjects = projects.slice(indexOfFirstProject, indexOfLastProject);
-  const totalPages = Math.ceil(projects.length / projectsPerPage);
-
-  // Change page
-  const handlePageChange = (pageNumber: number) => {
-    setCurrentPage(pageNumber);
-    // Smooth scroll to top of projects section
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  // Edit project
+  const editProject = (project: Project) => {
+    setEditingProject(project);
+    setIsFormOpen(true);
   };
 
   return (
     <DashboardLayout>
       <div className="bg-slate-900 rounded-lg border border-slate-800 p-6 mb-6 flex justify-between items-center">
         <h2 className="text-white text-xl font-semibold">Projects</h2>
-        <button 
-          onClick={() => handleAddEdit(null)}
+        <button
+          onClick={() => {
+            setEditingProject(null);
+            setIsFormOpen(true);
+          }}
           className="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-md text-white font-medium transition-colors duration-200"
         >
           <Plus size={18} className="mr-2" />
@@ -220,150 +186,55 @@ const ManageWorks = () => {
 
       {isLoading ? (
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
-        </div>
-      ) : error ? (
-        <div className="bg-red-900/20 border border-red-900/40 text-red-300 p-4 rounded-lg">
-          {error}
-        </div>
-      ) : projects.length === 0 ? (
-        <div className="bg-slate-900 border border-slate-800/80 rounded-lg p-8 text-center">
-          <div className="text-slate-400 mb-4">No projects found</div>
-          <button 
-            onClick={() => handleAddEdit(null)}
-            className="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-md text-white font-medium transition-colors duration-200"
-          >
-            <Plus size={18} className="mr-2" />
-            Add Your First Project
-          </button>
+          <Loader2 size={40} className="animate-spin text-purple-500" />
         </div>
       ) : (
-        <>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {currentProjects.map((project) => (
-              <div 
-                key={project.id}
-                className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50 hover:border-purple-500/50 transition-all duration-200"
+        <div className="bg-slate-900 rounded-lg border border-slate-800 p-6">
+          <div className="flex mb-6">
+            <div className="bg-slate-800 p-2 rounded-lg flex space-x-2">
+              <button 
+                className={`px-3 py-1 rounded-md ${!activeFilter ? 'bg-purple-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}
+                onClick={() => setActiveFilter(null)}
               >
-                {/* Project Image */}
-                <div className="aspect-video mb-3 rounded-md overflow-hidden bg-slate-700">
-                  {project.image ? (
-                    <img 
-                      src={project.image} 
-                      alt={project.title}
-                      className="w-full h-full object-cover object-top"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-slate-500">
-                      No Image
-                    </div>
-                  )}
-                </div>
-
-                {/* Project Info */}
-                <h3 className="text-white font-medium mb-2 truncate" title={project.title}>
-                  {project.title}
-                </h3>
-                
-                <div className="flex items-center justify-between mt-3">
-                  <button
-                    onClick={() => handleAddEdit(project)}
-                    className="text-xs px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded text-slate-300 transition-colors duration-200"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(project.id)}
-                    className="text-xs px-2 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded transition-colors duration-200"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex justify-center mt-8">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className={`p-2 rounded-lg transition-all duration-200 ${
-                    currentPage === 1
-                      ? 'text-slate-600 cursor-not-allowed'
-                      : 'text-white hover:bg-slate-800'
-                  }`}
-                >
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 19l-7-7 7-7"
-                    />
-                  </svg>
-                </button>
-
-                {[...Array(totalPages)].map((_, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => handlePageChange(idx + 1)}
-                    className={`px-3 py-1 rounded-lg transition-all duration-200 ${
-                      currentPage === idx + 1
-                        ? 'bg-purple-600 text-white'
-                        : 'text-slate-300 hover:bg-slate-800'
-                    }`}
-                  >
-                    {idx + 1}
-                  </button>
-                ))}
-
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className={`p-2 rounded-lg transition-all duration-200 ${
-                    currentPage === totalPages
-                      ? 'text-slate-600 cursor-not-allowed'
-                      : 'text-white hover:bg-slate-800'
-                  }`}
-                >
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
-                </button>
-              </div>
+                All
+              </button>
+              <button 
+                className={`px-3 py-1 rounded-md ${activeFilter === 'personal' ? 'bg-purple-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}
+                onClick={() => setActiveFilter('personal')}
+              >
+                Personal
+              </button>
+              <button 
+                className={`px-3 py-1 rounded-md ${activeFilter === 'client' ? 'bg-purple-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}
+                onClick={() => setActiveFilter('client')}
+              >
+                Client
+              </button>
             </div>
-          )}
-        </>
+          </div>
+          <ProjectsList 
+            projects={projects.filter(p => {
+              if (activeFilter === 'personal') return !p.isClientProject;
+              if (activeFilter === 'client') return p.isClientProject;
+              return true;
+            })} 
+            onEdit={editProject} 
+            onDelete={deleteProject} 
+          />
+        </div>
       )}
 
-      {isModalOpen && (
+      {isFormOpen && (
         <ProjectForm
           project={editingProject}
-          defaultProject={emptyProject}
-          onSave={handleSave}
-          onCancel={() => setIsModalOpen(false)}
+          defaultProject={defaultProject}
+          onSave={saveProject}
+          onCancel={() => {
+            setIsFormOpen(false);
+            setEditingProject(null);
+          }}
         />
       )}
     </DashboardLayout>
   );
-};
-
-export default ManageWorks; 
+} 

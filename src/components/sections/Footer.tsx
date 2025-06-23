@@ -44,7 +44,7 @@ export default function Footer() {
           setSettings(data);
         }
       } catch (error) {
-        console.error('Error fetching contact settings:', error);
+        // Silently handle error and use default settings
       }
     };
 
@@ -105,19 +105,7 @@ export default function Footer() {
   ];
 
   return (
-    <footer className="relative py-12 overflow-hidden border-t border-slate-800">
-      <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
-        {/* Subtle grid pattern overlay */}
-        <div 
-          className="absolute inset-0 opacity-10"
-          style={{
-            backgroundImage: `linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px), 
-                             linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px)`,
-            backgroundSize: '40px 40px'
-          }}
-        />
-      </div>
-
+    <footer className="relative py-12 overflow-hidden border-t border-slate-800 bg-[#0B1120]">
       <div className="container relative z-10 mx-auto px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">

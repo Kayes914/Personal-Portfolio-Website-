@@ -23,8 +23,6 @@ export default function AnalyticsReset() {
       if ('dataLayer' in window) {
         window.dataLayer = [];
       }
-      
-      console.log('Analytics cookies and cache cleared');
     }
   }, []);
 

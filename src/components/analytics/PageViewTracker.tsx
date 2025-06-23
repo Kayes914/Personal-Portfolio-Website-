@@ -21,7 +21,6 @@ export default function PageViewTracker() {
         window.gtag('config', gaId, {
           page_path: url,
         });
-        console.log('Page view tracked in GA:', url);
       }
     }
   }, [pathname, searchParams, gaId]);

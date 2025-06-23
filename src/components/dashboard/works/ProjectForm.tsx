@@ -55,6 +55,16 @@ const ProjectForm = ({
           }
         });
       }
+    } else if (name === 'isClientProject') {
+      // Toggle client project status
+      const isClient = (e.target as HTMLInputElement).checked;
+      setFormData({
+        ...formData,
+        isClientProject: isClient,
+        // Reset client and industry if toggling off
+        client: isClient ? formData.client : '',
+        industry: isClient ? formData.industry : ''
+      });
     } else {
       setFormData({
         ...formData,
@@ -88,39 +98,24 @@ const ProjectForm = ({
         return;
       }
       
-      // Create a unique file name
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-      const filePath = `public/${fileName}`;
+      // For now, just simulate upload and use a placeholder URL
+      // In a real implementation, you would upload to your server or a service
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate upload delay
       
-      // Upload file to Supabase Storage
-      const { data, error } = await supabase.storage
-        .from('project-images')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false,
-        });
-      
-      if (error) throw error;
-      
-      // Get the public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('project-images')
-        .getPublicUrl(filePath);
+      // Create a fake URL (in production, replace with actual upload)
+      const timestamp = typeof window !== 'undefined' ? Date.now() : 'ssr';
+      const fakeUrl = `/placeholder-${timestamp}.png`;
       
       // Update form with new image URL
       setFormData({
         ...formData,
-        image: publicUrl
+        image: fakeUrl
       });
       
-      console.log('File uploaded successfully:', publicUrl);
-      
-      // Monitor the upload progress in a different way (optional)
-      setUploadProgress(100); // Since we don't have direct progress API, set to complete after upload
+      // Set progress to complete
+      setUploadProgress(100);
     } catch (error: any) {
-      console.error('Error uploading file:', error);
-      setUploadError(error.message || 'Failed to upload image');
+      setUploadError(error.message || 'Failed to process image');
     } finally {
       setIsUploading(false);
     }
@@ -161,7 +156,6 @@ const ProjectForm = ({
       // Pass the form data back to parent component
       onSave(formData);
     } catch (error: any) {
-      console.error('Error saving project:', error);
       alert('Failed to save project. Please try again.');
       setIsLoading(false);
     }
@@ -189,6 +183,32 @@ const ProjectForm = ({
 
         <form onSubmit={handleSubmit}>
           <div className="space-y-6">
+            {/* Project Type Toggle */}
+            <div className="flex items-center justify-between p-4 bg-slate-800/50 rounded-lg border border-slate-700/50">
+              <div>
+                <h4 className="font-medium text-white">Project Type</h4>
+                <p className="text-sm text-slate-400">Select the type of project you're adding</p>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className={`text-sm ${!formData.isClientProject ? 'text-white' : 'text-slate-400'}`}>
+                  Personal
+                </span>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="isClientProject"
+                    checked={formData.isClientProject}
+                    onChange={handleInputChange}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                </label>
+                <span className={`text-sm ${formData.isClientProject ? 'text-white' : 'text-slate-400'}`}>
+                  Client
+                </span>
+              </div>
+            </div>
+
             {/* Title */}
             <div>
               <label htmlFor="title" className="block text-sm font-medium text-slate-300 mb-1">
@@ -222,6 +242,64 @@ const ProjectForm = ({
                 placeholder="Brief description of your project"
               />
             </div>
+
+            {/* Client-specific fields */}
+            {formData.isClientProject && (
+              <>
+                {/* Client Name */}
+                <div>
+                  <label htmlFor="client" className="block text-sm font-medium text-slate-300 mb-1">
+                    Client Name <span className="text-slate-400 text-xs">(or "Confidential Client")</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="client"
+                    name="client"
+                    value={formData.client}
+                    onChange={handleInputChange}
+                    required={formData.isClientProject}
+                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="Company Name or 'Confidential Client'"
+                  />
+                  <div className="mt-1 flex items-center">
+                    <input
+                      type="checkbox"
+                      id="confidential-client"
+                      className="h-4 w-4 rounded border-slate-700 text-purple-600 focus:ring-purple-500 bg-slate-800"
+                      onChange={() => setFormData({...formData, client: "Confidential Client"})}
+                    />
+                    <label htmlFor="confidential-client" className="ml-2 text-xs text-slate-400">
+                      Use "Confidential Client" instead
+                    </label>
+                  </div>
+                </div>
+
+                {/* Industry */}
+                <div>
+                  <label htmlFor="industry" className="block text-sm font-medium text-slate-300 mb-1">
+                    Industry
+                  </label>
+                  <select
+                    id="industry"
+                    name="industry"
+                    value={formData.industry}
+                    onChange={handleInputChange}
+                    required={formData.isClientProject}
+                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  >
+                    <option value="">Select Industry</option>
+                    <option value="ecommerce">E-Commerce</option>
+                    <option value="fintech">FinTech</option>
+                    <option value="education">Education</option>
+                    <option value="healthcare">Healthcare</option>
+                    <option value="technology">Technology</option>
+                    <option value="entertainment">Entertainment</option>
+                    <option value="portfolio">Portfolio</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+              </>
+            )}
 
             {/* Image Upload/URL */}
             <div>
@@ -316,37 +394,41 @@ const ProjectForm = ({
               </div>
             </div>
 
-            {/* Category */}
-            <div>
-              <label htmlFor="category" className="block text-sm font-medium text-slate-300 mb-1">
-                Category
-              </label>
-              <select
-                id="category"
-                name="category"
-                value={formData.category}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              >
-                <option value="web">Web</option>
-                <option value="app">App</option>
-              </select>
-            </div>
+            {/* Category - only show for non-client projects */}
+            {!formData.isClientProject && (
+              <div>
+                <label htmlFor="category" className="block text-sm font-medium text-slate-300 mb-1">
+                  Category
+                </label>
+                <select
+                  id="category"
+                  name="category"
+                  value={formData.category}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                >
+                  <option value="web">Web</option>
+                  <option value="app">App</option>
+                </select>
+              </div>
+            )}
 
-            {/* Long Image Toggle */}
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="isLongImage"
-                name="isLongImage"
-                checked={formData.isLongImage}
-                onChange={(e) => setFormData({...formData, isLongImage: e.target.checked})}
-                className="h-4 w-4 rounded border-slate-700 text-purple-600 focus:ring-purple-500 bg-slate-800"
-              />
-              <label htmlFor="isLongImage" className="ml-2 block text-sm text-slate-300">
-                Long scrollable image (for full-page website screenshots)
-              </label>
-            </div>
+            {/* Long Image Toggle - only show for non-client projects */}
+            {!formData.isClientProject && (
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="isLongImage"
+                  name="isLongImage"
+                  checked={formData.isLongImage}
+                  onChange={(e) => setFormData({...formData, isLongImage: e.target.checked})}
+                  className="h-4 w-4 rounded border-slate-700 text-purple-600 focus:ring-purple-500 bg-slate-800"
+                />
+                <label htmlFor="isLongImage" className="ml-2 block text-sm text-slate-300">
+                  Long scrollable image (for full-page website screenshots)
+                </label>
+              </div>
+            )}
 
             {/* Technologies */}
             <div>

@@ -58,7 +58,7 @@ export default function ContactModal({ isOpen, onClose }: ContactModalProps) {
         setSettings(data);
       }
     } catch (error) {
-      console.error('Error fetching contact settings:', error);
+      // Silently handle error and use default settings
     }
   };
 
@@ -93,7 +93,16 @@ export default function ContactModal({ isOpen, onClose }: ContactModalProps) {
       setIsCopied(true);
       setTimeout(() => setIsCopied(false), 2000);
     } catch (err) {
-      console.error('Failed to copy email:', err);
+      // Fallback copy method if clipboard API fails
+      const textArea = document.createElement('textarea');
+      textArea.value = settings.email;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      setIsEmailRevealed(true);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
     }
   };
 

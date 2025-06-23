@@ -4,7 +4,6 @@ import { Suspense } from "react";
 import PageViewTracker from "@/components/analytics/PageViewTracker";
 import AnalyticsReset from "./analytics-reset";
 import CustomHead from "./custom-head";
-import NetworkDebug from "@/components/analytics/NetworkDebug";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -97,16 +96,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <CustomHead />
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <CustomHead />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet" />
+      </head>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`} suppressHydrationWarning>
         <Suspense fallback={null}>
           <AnalyticsReset />
           <PageViewTracker />
         </Suspense>
-        {process.env.NODE_ENV === 'development' && <NetworkDebug />}
         {children}
       </body>
     </html>

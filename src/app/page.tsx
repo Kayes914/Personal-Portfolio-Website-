@@ -1,6 +1,10 @@
 import Hero from "@/components/sections/Hero";
 import Works from "@/components/sections/Works";
 import About from "@/components/sections/About";
+import TechStack from "@/components/sections/TechStack";
+import ClientProjects from "@/components/sections/ClientProjects";
+import HowIWork from "@/components/sections/HowIWork";
+import Testimonials from "@/components/sections/Testimonials";
 import Footer from "@/components/sections/Footer";
 import Navbar from "@/components/Navbar";
 import JsonLd from "@/components/SEO/JsonLd";
@@ -22,14 +26,18 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen">
+    <main className="min-h-screen text-white">
       {/* Add structured data for SEO */}
       <JsonLd type="Portfolio" data={portfolioData} />
       
       <Navbar />
       <Hero />
-      <Works />
+      <TechStack />
+      <ClientProjects />
       <About />
+      <HowIWork />
+      <Works />
+      <Testimonials />
       <Footer />
     </main>
   );

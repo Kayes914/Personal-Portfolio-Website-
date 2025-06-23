@@ -17,6 +17,11 @@ interface MonthlyStats {
 
 // Generate a visitor ID if not exists
 const getVisitorId = () => {
+  // Check if we're in a browser environment
+  if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+    return 'ssr-fallback';
+  }
+  
   let visitorId = localStorage.getItem('visitor_id');
   if (!visitorId) {
     visitorId = Math.random().toString(36).substring(2) + Date.now().toString(36);
@@ -41,19 +46,12 @@ export const trackPageView = async (pagePath: string) => {
 // Get dashboard stats
 export const getDashboardStats = async () => {
   try {
-    console.log('Fetching dashboard stats...');
-    
     // Directly count projects instead of using stored procedure
-    console.log('Fetching projects...');
     const { data: projects, error: projectsError } = await supabase
       .from('projects')
       .select('*');
 
-    console.log('Projects data:', projects);
-    console.log('Projects error:', projectsError);
-
     if (projectsError) {
-      console.error('Error fetching projects:', projectsError);
       throw projectsError;
     }
 
@@ -62,14 +60,9 @@ export const getDashboardStats = async () => {
       new Date(project.created_at) >= new Date(new Date().setDate(1))
     ).length || 0;
 
-    console.log('Project counts:', { totalCount, monthlyChange });
-
     // Get daily and monthly views using RPC
     const { data: dailyStats } = await supabase.rpc('get_daily_views');
     const { data: monthlyStats } = await supabase.rpc('get_monthly_views');
-
-    console.log('Daily stats:', dailyStats);
-    console.log('Monthly stats:', monthlyStats);
 
     const result = {
       projects: {
@@ -86,10 +79,8 @@ export const getDashboardStats = async () => {
       }
     };
 
-    console.log('Final dashboard stats:', result);
     return result;
   } catch (error) {
-    console.error('Error fetching dashboard stats:', error);
     return null;
   }
 }; 

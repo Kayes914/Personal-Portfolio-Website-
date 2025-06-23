@@ -2,10 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight } from 'lucide-react';
+import { Code2, Rocket, Zap, Globe, Heart, Coffee, GraduationCap, Briefcase } from 'lucide-react';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
-import type { RealtimeChannel } from '@supabase/supabase-js';
 
 interface AboutSettings {
   title: string;
@@ -13,81 +12,94 @@ interface AboutSettings {
   image_url: string;
 }
 
+interface HeroSettings {
+  status: 'available' | 'busy' | 'offline';
+  available_text: string;
+  busy_text: string;
+  offline_text: string;
+}
+
 const defaultSettings: AboutSettings = {
-  title: 'Crafting Digital Experiences with Modern Web Technologies',
+  title: 'Building Digital Universes, One Line at a Time',
   description: [
-    'Hello! I\'m [Your Name], a Full Stack Web Developer passionate about creating innovative digital solutions. With expertise in React, Next.js, Laravel, and Node.js, I specialize in building scalable and user-friendly web applications.',
-    'My approach combines clean code practices with modern development tools to deliver high-quality solutions. I focus on creating seamless user experiences while ensuring robust and efficient server-side operations.',
-    'When I\'m not coding, I\'m constantly exploring new technologies and best practices to stay at the forefront of web development. I believe in writing clean, maintainable code and creating applications that make a difference.'
+    'Hey there! I\'m Kayes, a passionate Full Stack Developer who believes code is poetry and every project is a new adventure in the digital cosmos.',
+    'I specialize in crafting modern web applications that don\'t just work—they inspire. From sleek frontends that users love to robust backends that scale, I build digital experiences that matter.',
+    'When I\'m not exploring new technologies or debugging at 3 AM (with coffee, obviously), you\'ll find me thinking about how to make the web a more beautiful and functional place.'
   ],
-  image_url: '/placeholder-profile.jpg' // Using a local placeholder to avoid hydration issues
+  image_url: '/placeholder-profile.jpg'
 };
 
 const About = () => {
   const [isMounted, setIsMounted] = useState(false);
   const [settings, setSettings] = useState<AboutSettings>(defaultSettings);
+  const [heroSettings, setHeroSettings] = useState<HeroSettings>({
+    status: 'available',
+    available_text: "Available for projects",
+    busy_text: "Currently busy",
+    offline_text: "Currently offline"
+  });
   const [loading, setLoading] = useState(true);
   const [imageError, setImageError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'education' | 'experience'>('education');
 
   const fetchSettings = async () => {
     try {
-      console.log('Fetching about settings...');
-      const { data, error } = await supabase
+      // Fetch about settings
+      const aboutResult = await supabase
         .from('about_settings')
         .select('*')
         .limit(1)
         .order('created_at', { ascending: true })
         .single();
 
-      if (error) {
-        console.error('Error fetching about settings:', error);
-        throw error;
-      }
+      // Fetch hero settings for status
+      const heroResult = await supabase
+        .from('hero_settings')
+        .select('*')
+        .limit(1)
+        .order('created_at', { ascending: true })
+        .single();
 
-      console.log('Fetched about settings:', data);
-      
-      if (data) {
-        // Validate image URL
-        let imageUrl = data.image_url;
-        let isValidUrl = false;
-
-        console.log('Raw image URL from database:', imageUrl);
-
-        if (imageUrl && typeof imageUrl === 'string' && imageUrl.trim() !== '') {
-          try {
-            // Fix any incorrect URLs that might have double .com
-            if (imageUrl.includes('i.ibb.co.com')) {
-              imageUrl = imageUrl.replace('i.ibb.co.com', 'i.ibb.co');
-            }
-            new URL(imageUrl); // Check if it's a valid absolute URL
-            isValidUrl = true;
-            console.log('Database URL is valid:', imageUrl);
-          } catch (_) {
-            console.warn('Database URL is not a valid absolute URL:', imageUrl);
-            isValidUrl = false;
-          }
-        }
-
-        if (!isValidUrl) {
-          console.log('Using default image URL because database URL is invalid or empty.');
-          imageUrl = defaultSettings.image_url; 
+      // Handle about settings
+      if (aboutResult.error) {
+        // Keep existing settings or default settings, but indicate loading failed
+        setImageError('Failed to fetch settings'); 
+      } else if (aboutResult.data) {
+        const imageUrl = aboutResult.data.image_url;
+        
+        // Simple URL validation
+        const isValidUrl = imageUrl && (imageUrl.startsWith('http://') || imageUrl.startsWith('https://'));
+        
+        if (isValidUrl) {
+          // Valid URL from database
+        } else {
+          // Invalid or empty URL, use default
         }
         
         setSettings({
-          title: data.title || defaultSettings.title,
-          description: data.description || defaultSettings.description,
+          title: aboutResult.data.title || defaultSettings.title,
+          description: aboutResult.data.description || defaultSettings.description,
           image_url: imageUrl // Use the validated or default URL
         });
         setImageError(null); // Reset error if validation succeeds or defaults are used
-        
       } else {
         // Handle case where no data is returned at all
-        console.log('No data found, using default settings entirely.');
         setSettings(defaultSettings);
         setImageError(null); // Assuming default image URL is valid
       }
+
+      // Handle hero settings
+      if (heroResult.error) {
+        // Keep default settings
+      } else if (heroResult.data) {
+        setHeroSettings({
+          status: heroResult.data.status || 'available',
+          available_text: heroResult.data.available_text || "Available for projects",
+          busy_text: heroResult.data.busy_text || "Currently busy",
+          offline_text: heroResult.data.offline_text || "Currently offline"
+        });
+      }
     } catch (error) {
-      console.error('Error in fetchSettings:', error);
       // Keep existing settings or default settings, but indicate loading failed
       setImageError('Failed to fetch settings'); 
     } finally {
@@ -107,7 +119,7 @@ const About = () => {
 
   if (loading) {
     return (
-      <section id="about" className="relative py-24 overflow-hidden">
+      <section id="about" className="relative py-24 overflow-hidden bg-gradient-to-r from-[#1A2942] to-[#131F35]">
         <div className="container relative z-10 mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
@@ -118,149 +130,340 @@ const About = () => {
   }
 
   return (
-    <>
-      <section id="about" className="relative py-24 overflow-hidden">
-        {/* Background with gradient mesh and particles */}
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
-          {/* Mesh gradient blobs */}
-          <div className="absolute top-0 left-0 w-full h-full overflow-hidden opacity-20">
-            <div className="absolute -top-20 -right-20 w-96 h-96 bg-purple-600/30 rounded-full blur-3xl" />
-            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl" />
-            <div className="absolute bottom-1/3 right-1/4 w-96 h-96 bg-cyan-600/20 rounded-full blur-3xl" />
-            <div className="absolute -bottom-20 -left-20 w-96 h-96 bg-indigo-600/30 rounded-full blur-3xl" />
-          </div>
-          
-          {/* Subtle grid pattern overlay */}
-          <div 
-            className="absolute inset-0 opacity-10"
-            style={{
-              backgroundImage: `linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px), 
-                               linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px)`,
-              backgroundSize: '40px 40px'
-            }}
-          />
-        </div>
+    <section id="about" className="relative py-24 overflow-hidden bg-[#0B0D17]">
+      {/* Minimal background elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 -right-32 w-64 h-64 bg-blue-600/5 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-1/4 -left-32 w-64 h-64 bg-purple-600/5 rounded-full blur-3xl"></div>
+      </div>
 
-        <div className="container relative z-10 mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Section header */}
-          <motion.div 
-            className="text-center mb-16"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-          >
-            <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-cyan-400 to-blue-400">
-              About Me
-            </h2>
-          </motion.div>
+      <div className="container mx-auto px-4 relative z-10">
+        {/* Section Title */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8 }}
+          className="text-center mb-20"
+        >
+          <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-400">
+            Know More About Me
+          </h2>
+          <div className="w-20 h-0.5 bg-gradient-to-r from-blue-500 to-purple-500 mx-auto"></div>
+        </motion.div>
 
-          <div className="max-w-6xl mx-auto">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-              {/* Image Column */}
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5 }}
-                className="relative aspect-[4/3] lg:aspect-auto lg:h-[540px]"
-              >
-                <div className="absolute inset-0 rounded-2xl overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-br from-purple-600/10 to-blue-600/10" />
-                  {imageError ? (
-                    <div className="absolute inset-0 flex items-center justify-center bg-slate-800 text-slate-400">
-                      <p>Image not available</p>
-                    </div>
-                  ) : (
-                    <Image
-                      src={settings.image_url}
-                      alt="About Me"
-                      fill
-                      className="object-cover"
-                      priority
-                      onError={(e) => {
-                        console.error('Image failed to load:', settings.image_url);
-                        setImageError('Failed to load image');
-                      }}
-                    />
-                  )}
-                </div>
-                <div className="absolute inset-0 ring-1 ring-inset ring-white/10 rounded-2xl" />
-              </motion.div>
-
-              {/* Content Column */}
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5 }}
-                className="relative"
-              >
-                <div className="prose prose-invert max-w-none">
-                  <h3 className="text-2xl font-semibold text-white mb-6">
-                    {settings.title}
-                  </h3>
-                  
-                  <div className="space-y-6 text-slate-300 text-lg">
-                    {settings.description.map((paragraph, index) => (
-                      <p key={index}>{paragraph}</p>
-                    ))}
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 items-start">
+            
+            {/* Left Side - Profile (1/3) */}
+            <motion.div
+              initial={{ opacity: 0, x: -30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="lg:col-span-1"
+            >
+              <div className="text-center lg:text-left">
+                {/* Profile Image */}
+                <div className="w-full max-w-sm h-80 mx-auto lg:mx-0 mb-8 relative group">
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-2xl blur-lg group-hover:blur-xl transition-all duration-500"></div>
+                  <div className="relative w-full h-full rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
+                    {imageError ? (
+                      <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center">
+                        <div className="text-center text-white">
+                          <Code2 className="w-12 h-12 mx-auto mb-3" />
+                          <p className="text-lg font-semibold">Kayes</p>
+                          <p className="text-sm opacity-70">Full Stack Developer</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <Image
+                        src={settings.image_url}
+                        alt="Kayes - Full Stack Developer"
+                        fill
+                        className="object-cover group-hover:scale-110 transition-transform duration-700"
+                        priority
+                        onError={() => setImageError('Failed to load image')}
+                      />
+                    )}
                   </div>
+                </div>
 
-                  {/* Core Tools Card */}
-                  <div className="mt-10">
-                    <div className="rounded-2xl bg-slate-800/70 border border-slate-700/40 shadow-xl p-6 flex flex-col gap-4 max-w-xl">
-                      <h4 className="text-lg font-semibold text-white mb-2 flex items-center gap-2">
-                        <span className="inline-block w-6 h-6 bg-gradient-to-tr from-purple-400 to-blue-400 rounded-full mr-2"></span>
-                        Core Tools & Technologies
-                      </h4>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                        <div className="flex items-center gap-3">
-                          <img src="/react.svg" alt="React" className="w-8 h-8" />
-                          <span className="text-slate-200 text-sm">React</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <img src="/nextjs.svg" alt="Next.js" className="w-8 h-8 bg-white rounded-full p-1" />
-                          <span className="text-slate-200 text-sm">Next.js</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <img src="/node-js-svgrepo-com.svg" alt="Node.js" className="w-8 h-8" />
-                          <span className="text-slate-200 text-sm">Node.js</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <img src="/javascript.svg" alt="JavaScript" className="w-8 h-8" />
-                          <span className="text-slate-200 text-sm">JavaScript</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <img src="/php.svg" alt="PHP" className="w-8 h-8" />
-                          <span className="text-slate-200 text-sm">PHP</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <img src="/laravel-svgrepo-com.svg" alt="Laravel" className="w-8 h-8" />
-                          <span className="text-slate-200 text-sm">Laravel</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <img src="/mysql-logo-svgrepo-com.svg" alt="MySQL" className="w-8 h-8" />
-                          <span className="text-slate-200 text-sm">MySQL</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <img src="/mongodb.svg" alt="MongoDB" className="w-8 h-8" />
-                          <span className="text-slate-200 text-sm">MongoDB</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <img src="/postgresql.svg" alt="PostgreSQL" className="w-8 h-8 bg-blue-800 rounded p-1" />
-                          <span className="text-slate-200 text-sm">PostgreSQL</span>
-                        </div>
+                {/* Name & Role */}
+                <h3 className="text-3xl font-bold text-white mb-2">Mahmudullah Kayes</h3>
+                <p className="text-xl text-blue-400 mb-6">Full Stack Developer</p>
+                
+                {/* Status */}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: 0.6 }}
+                  className="relative mb-8"
+                >
+                  <div className={`inline-flex items-center gap-3 px-6 py-3 backdrop-blur-sm rounded-2xl shadow-lg transition-all duration-300 group ${
+                    heroSettings.status === 'available' 
+                      ? 'bg-gradient-to-r from-emerald-500/10 via-emerald-600/5 to-emerald-500/10 border border-emerald-500/30 shadow-emerald-500/10 hover:shadow-emerald-500/20'
+                      : heroSettings.status === 'busy'
+                      ? 'bg-gradient-to-r from-orange-500/10 via-orange-600/5 to-orange-500/10 border border-orange-500/30 shadow-orange-500/10 hover:shadow-orange-500/20'
+                      : 'bg-gradient-to-r from-red-500/10 via-red-600/5 to-red-500/10 border border-red-500/30 shadow-red-500/10 hover:shadow-red-500/20'
+                  }`}>
+                    {/* Animated pulse ring */}
+                    <div className="relative">
+                      <div className={`w-3 h-3 rounded-full ${
+                        heroSettings.status === 'available' 
+                          ? 'bg-emerald-400' 
+                          : heroSettings.status === 'busy'
+                          ? 'bg-orange-400'
+                          : 'bg-red-400'
+                      }`}></div>
+                      <div className={`absolute inset-0 w-3 h-3 rounded-full animate-ping opacity-75 ${
+                        heroSettings.status === 'available' 
+                          ? 'bg-emerald-400' 
+                          : heroSettings.status === 'busy'
+                          ? 'bg-orange-400'
+                          : 'bg-red-400'
+                      }`}></div>
+                    </div>
+                    <span className={`text-sm font-semibold tracking-wide ${
+                      heroSettings.status === 'available' 
+                        ? 'text-emerald-400' 
+                        : heroSettings.status === 'busy'
+                        ? 'text-orange-400'
+                        : 'text-red-400'
+                    }`}>
+                      {heroSettings.status === 'available' 
+                        ? heroSettings.available_text
+                        : heroSettings.status === 'busy'
+                        ? heroSettings.busy_text
+                        : heroSettings.offline_text
+                      }
+                    </span>
+                    {/* Subtle glow effect */}
+                    <div className={`absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 ${
+                      heroSettings.status === 'available' 
+                        ? 'bg-gradient-to-r from-transparent via-emerald-500/5 to-transparent'
+                        : heroSettings.status === 'busy'
+                        ? 'bg-gradient-to-r from-transparent via-orange-500/5 to-transparent'
+                        : 'bg-gradient-to-r from-transparent via-red-500/5 to-transparent'
+                    }`}></div>
+                  </div>
+                </motion.div>
+
+
+              </div>
+            </motion.div>
+
+            {/* Right Side - Content (2/3) */}
+            <motion.div
+              initial={{ opacity: 0, x: 30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8, delay: 0.4 }}
+              className="lg:col-span-2"
+            >
+              <div className="space-y-8">
+                {/* Description */}
+                <div className="space-y-6 text-slate-300 text-lg leading-relaxed">
+                  {settings.description.map((paragraph, index) => (
+                    <motion.p
+                      key={index}
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.6, delay: 0.6 + index * 0.2 }}
+                    >
+                      {paragraph}
+                    </motion.p>
+                  ))}
+                </div>
+
+                {/* Education/Experience Toggle */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6, delay: 1 }}
+                  className="pt-6"
+                >
+                  {/* Glass Effect Flip Toggle */}
+                  <div className="relative mb-6">
+                    <div className="relative bg-gradient-to-r from-slate-900/40 via-slate-800/30 to-slate-900/40 backdrop-blur-xl border border-white/10 rounded-2xl p-1.5 max-w-sm overflow-hidden shadow-2xl shadow-black/50">
+                      {/* Glass Sliding Background */}
+                      <div 
+                        className={`absolute top-1.5 bottom-1.5 w-[calc(50%-6px)] backdrop-blur-md border border-white/20 rounded-xl transition-all duration-500 ease-out shadow-2xl ${
+                          activeTab === 'education' 
+                            ? 'left-1.5 bg-gradient-to-br from-blue-500/30 via-blue-600/20 to-blue-700/30 shadow-blue-500/50' 
+                            : 'left-[calc(50%+3px)] bg-gradient-to-br from-purple-500/30 via-purple-600/20 to-purple-700/30 shadow-purple-500/50'
+                        }`}
+                      />
+                      
+                      {/* Inner Glass Highlight */}
+                      <div 
+                        className={`absolute top-2 w-[calc(50%-8px)] h-1 rounded-full transition-all duration-500 ease-out ${
+                          activeTab === 'education' 
+                            ? 'left-2 bg-gradient-to-r from-transparent via-blue-300/60 to-transparent' 
+                            : 'left-[calc(50%+2px)] bg-gradient-to-r from-transparent via-purple-300/60 to-transparent'
+                        }`}
+                      />
+                      
+                      {/* Flip Container */}
+                      <div className="relative flex">
+                        <button
+                          onClick={() => setActiveTab('education')}
+                          className={`relative flex-1 flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-medium transition-all duration-300 z-10 group ${
+                            activeTab === 'education'
+                              ? 'text-white'
+                              : 'text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          <GraduationCap className={`w-5 h-5 transition-all duration-300 ${
+                            activeTab === 'education' 
+                              ? 'scale-110 drop-shadow-lg' 
+                              : 'group-hover:scale-105'
+                          }`} />
+                          <span className={`text-sm font-bold tracking-wide ${
+                            activeTab === 'education' ? 'drop-shadow-lg' : ''
+                          }`}>Education</span>
+                        </button>
+                        
+                        <button
+                          onClick={() => setActiveTab('experience')}
+                          className={`relative flex-1 flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-medium transition-all duration-300 z-10 group ${
+                            activeTab === 'experience'
+                              ? 'text-white'
+                              : 'text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          <Briefcase className={`w-5 h-5 transition-all duration-300 ${
+                            activeTab === 'experience' 
+                              ? 'scale-110 drop-shadow-lg' 
+                              : 'group-hover:scale-105'
+                          }`} />
+                          <span className={`text-sm font-bold tracking-wide ${
+                            activeTab === 'experience' ? 'drop-shadow-lg' : ''
+                          }`}>Experience</span>
+                        </button>
                       </div>
                     </div>
                   </div>
-                </div>
-              </motion.div>
-            </div>
+
+                  {/* Flip Content Container */}
+                  <div className="relative overflow-hidden">
+                    <div className="space-y-3">
+                      {activeTab === 'education' && (
+                        <motion.div
+                          key="education"
+                          initial={{ opacity: 0, rotateY: 90 }}
+                          animate={{ opacity: 1, rotateY: 0 }}
+                          exit={{ opacity: 0, rotateY: -90 }}
+                          transition={{ duration: 0.5, ease: "easeInOut" }}
+                          className="space-y-6"
+                          style={{ transformStyle: 'preserve-3d' }}
+                        >
+                          <div className="border-l-2 border-blue-500/50 pl-4">
+                            <div className="space-y-6">
+                              <div>
+                                <h4 className="text-lg font-semibold text-white mb-1">
+                                  Bachelor's in Computer Science
+                                </h4>
+                                <div className="flex items-center gap-2 text-blue-400 text-sm font-medium mb-2">
+                                  <GraduationCap className="w-4 h-4" />
+                                  Northern University Bangladesh
+                                  <span className="text-slate-500">•</span>
+                                  <span className="text-slate-400">2025-2028</span>
+                                </div>
+                                <p className="text-slate-300 text-sm">
+                                  Subject: Computer Science and Engineering
+                                </p>
+                              </div>
+                              
+                              <div className="h-px bg-gradient-to-r from-blue-500/30 to-transparent"></div>
+                              
+                              <div>
+                                <h4 className="text-lg font-semibold text-white mb-1">
+                                  Completed Diploma in Computer Science
+                                </h4>
+                                <div className="flex items-center gap-2 text-blue-400 text-sm font-medium mb-2">
+                                <GraduationCap className="w-4 h-4" />
+                                  Shyamoli Ideal Polytechnic Institute
+                                  <span className="text-slate-500">•</span>
+                                  <span className="text-slate-400">2020-2024</span>
+                                </div>
+                                <p className="text-slate-300 text-sm">
+                                  Subject: Computer Science
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+
+                      {activeTab === 'experience' && (
+                        <motion.div
+                          key="experience"
+                          initial={{ opacity: 0, rotateY: 90 }}
+                          animate={{ opacity: 1, rotateY: 0 }}
+                          exit={{ opacity: 0, rotateY: -90 }}
+                          transition={{ duration: 0.5, ease: "easeInOut" }}
+                          className="space-y-6"
+                          style={{ transformStyle: 'preserve-3d' }}
+                        >
+                          <div className="border-l-2 border-purple-500/50 pl-4">
+                            <div className="space-y-6">
+                              <div>
+                                <h4 className="text-lg font-semibold text-white mb-1">
+                                  Full Stack Developer
+                                </h4>
+                                <div className="flex items-center gap-2 text-purple-400 text-sm font-medium mb-2">
+                                  <Briefcase className="w-4 h-4" />
+                                  Tech Company Inc.
+                                  <span className="text-slate-500">•</span>
+                                  <span className="text-slate-400">2024-Present</span>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="text-blue-300 text-xs font-medium">React</span>
+                                  <span className="text-slate-500 leading-none">•</span>
+                                  <span className="text-green-300 text-xs font-medium">Tailwind CSS</span>
+                                  <span className="text-slate-500 leading-none">•</span>
+                                  <span className="text-purple-300 text-xs font-medium">Laravel</span>
+                                </div>
+                              </div>
+                              
+                              <div className="h-px bg-gradient-to-r from-purple-500/30 to-transparent"></div>
+                              
+                              <div>
+                                <h4 className="text-lg font-semibold text-white mb-1">
+                                  Full Stack Developer
+                                </h4>
+                                <div className="flex items-center gap-2 text-purple-400 text-sm font-medium mb-2">
+                                  <Code2 className="w-4 h-4" />
+                                  Startup Solutions
+                                  <span className="text-slate-500">•</span>
+                                  <span className="text-slate-400">2022-2023</span>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="text-red-300 text-xs font-medium">Laravel</span>
+                                  <span className="text-slate-500 leading-none">•</span>
+                                  <span className="text-yellow-300 text-xs font-medium">JavaScript</span>
+                                  <span className="text-slate-500 leading-none">•</span>
+                                  <span className="text-blue-300 text-xs font-medium">MySQL</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
+            </motion.div>
+
           </div>
         </div>
-      </section>
-    </>
+      </div>
+    </section>
   );
 };
 
